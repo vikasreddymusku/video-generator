@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "compositionId": "MLEngineeringPromo",
+  "slug": "ml-engineering",
+  "title": "Machine Learning Engineering",
+  "brand": "Tinitiate AI Solutions",
+  "sourceHash": "472c0e4d9d40ee9c4d35bebc0650525dd85bb0cec4c6ad1c05a56852109401c3",
+  "durationSeconds": 30,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "totalFrames": 900,
+  "theme": "future-neon-blue",
+  "voiceover": {
+    "mode": "continuous",
+    "text": "Tinitiate AI. Build your career in Machine Learning Engineering. Learn Python, data preparation, feature engineering, model training, evaluation, and deployment. Build hands-on machine learning pipelines with real engineering workflows. Track experiments with MLflow, serve models with FastAPI, and deploy with Docker. Gain practical project experience and career support. Enroll now with Tinitiate AI Solutions."
+  },
+  "contact": {
+    "cta": "Enroll Now",
+    "website": "www.tinitiateai.com",
+    "email": "contact@tinitiateai.com",
+    "phone": "+91 6309123485",
+    "address": "13-16-58, Road No 4, Kamala Nagar, P&T Colony, Chaitanyapuri, Hyderabad, 500060, Telangana, India",
+    "tagline": "LEARN. BUILD. LEAD THE FUTURE."
+  },
+  "scenes": [
+    {
+      "id": "brand",
+      "type": "brand-intro",
+      "startFrame": 0,
+      "durationInFrames": 105,
+      "headline": "TINITIATE AI",
+      "supportingText": [],
+      "items": [],
+      "visualConcept": "Centered brand reveal inside a restrained data constellation",
+      "animationDirection": "scale",
+      "voiceover": "Tinitiate AI.",
+      "transition": "light-sweep",
+      "suggestedSfx": [
+        "impact"
+      ]
+    },
+    {
+      "id": "hero",
+      "type": "hero-title",
+      "startFrame": 105,
+      "durationInFrames": 105,
+      "headline": "MACHINE LEARNING\nENGINEERING",
+      "supportingText": [
+        "BUILD REAL ML SYSTEMS",
+        "FROM DATA TO DEPLOYMENT"
+      ],
+      "items": [],
+      "visualConcept": "Oversized typography with data moving toward a model structure",
+      "animationDirection": "left",
+      "voiceover": "Build your career in Machine Learning Engineering.",
+      "transition": "glow-wipe",
+      "suggestedSfx": [
+        "whoosh"
+      ]
+    },
+    {
+      "id": "workflow",
+      "type": "process-flow",
+      "startFrame": 210,
+      "durationInFrames": 165,
+      "headline": "FROM DATA TO DEPLOYMENT",
+      "supportingText": [
+        "THE ENGINEERING WORKFLOW",
+        "Python  /  scikit-learn  /  MLflow  /  FastAPI"
+      ],
+      "items": [
+        {
+          "label": "DATA"
+        },
+        {
+          "label": "FEATURES"
+        },
+        {
+          "label": "TRAIN"
+        },
+        {
+          "label": "EVALUATE"
+        },
+        {
+          "label": "DEPLOY"
+        }
+      ],
+      "visualConcept": "Sequential node activation and traveling data on a horizontal lifecycle",
+      "animationDirection": "up",
+      "voiceover": "Learn Python, data preparation, feature engineering, model training, evaluation, and deployment.",
+      "transition": "directional-wipe",
+      "suggestedSfx": [
+        "click"
+      ]
+    },
+    {
+      "id": "projects",
+      "type": "project-showcase",
+      "startFrame": 375,
+      "durationInFrames": 165,
+      "headline": "BUILD BEYOND THE NOTEBOOK",
+      "supportingText": [
+        "HANDS-ON ENGINEERING"
+      ],
+      "items": [
+        {
+          "label": "Customer churn",
+          "detail": "Prepare, train, evaluate"
+        },
+        {
+          "label": "ML pipelines",
+          "detail": "Repeatable engineering workflows"
+        },
+        {
+          "label": "Model APIs",
+          "detail": "Package and serve predictions"
+        }
+      ],
+      "visualConcept": "Terminal-inspired project build log paired with engineering stages",
+      "animationDirection": "right",
+      "voiceover": "Build hands-on machine learning pipelines with real engineering workflows.",
+      "transition": "light-sweep",
+      "suggestedSfx": [
+        "whoosh"
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "technology-stack",
+      "startFrame": 540,
+      "durationInFrames": 165,
+      "headline": "TRAIN. TRACK. DEPLOY.",
+      "supportingText": [
+        "YOUR ENGINEERING TOOLKIT"
+      ],
+      "items": [
+        {
+          "label": "Python"
+        },
+        {
+          "label": "scikit-learn"
+        },
+        {
+          "label": "MLflow"
+        },
+        {
+          "label": "FastAPI"
+        },
+        {
+          "label": "Docker"
+        }
+      ],
+      "visualConcept": "Staggered typography badges with alternating theme accents",
+      "animationDirection": "up",
+      "voiceover": "Track experiments with MLflow, serve models with FastAPI, and deploy with Docker.",
+      "transition": "glow-wipe",
+      "suggestedSfx": [
+        "whoosh"
+      ]
+    },
+    {
+      "id": "benefits",
+      "type": "feature-grid",
+      "startFrame": 705,
+      "durationInFrames": 75,
+      "headline": "BUILD YOUR NEXT CHAPTER",
+      "supportingText": [
+        "CAREER-ORIENTED LEARNING"
+      ],
+      "items": [
+        {
+          "label": "Expert mentorship"
+        },
+        {
+          "label": "Interview preparation"
+        },
+        {
+          "label": "Career support"
+        }
+      ],
+      "visualConcept": "Three spacious support pillars with staggered elevation",
+      "animationDirection": "up",
+      "voiceover": "Gain practical project experience and career support.",
+      "transition": "fade",
+      "suggestedSfx": [
+        "whoosh"
+      ]
+    },
+    {
+      "id": "cta",
+      "type": "cta",
+      "startFrame": 780,
+      "durationInFrames": 120,
+      "headline": "MACHINE LEARNING\nENGINEERING",
+      "supportingText": [],
+      "items": [],
+      "visualConcept": "Quiet split layout with one CTA pulse and complete verified contact details",
+      "animationDirection": "scale",
+      "voiceover": "Enroll now with Tinitiate AI Solutions.",
+      "transition": "bloom",
+      "suggestedSfx": [
+        "impact"
+      ]
+    }
+  ]
+}

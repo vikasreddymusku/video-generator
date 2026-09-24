@@ -1,0 +1,11 @@
+{
+  "wordCount": 208,
+  "estimatedSeconds": 89.2,
+  "availableSeconds": 89.5,
+  "fits": true,
+  "targetWords": {
+    "min": 166,
+    "max": 197
+  },
+  "absoluteMaxWords": 208
+}

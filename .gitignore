@@ -5,3 +5,22 @@ dist
 
 # Ignore the output video from Git but not videos you import into src/.
 out
+
+.env.*
+!.env.example
+output/**/audio/
+output/**/renders/
+output/**/logs/
+output/.automation.lock
+output/**/planner-cache.json
+public/generated/
+*.tmp
+
+data/
+inputs/job-uploads/
+output/jobs/
+.npm-cache/
+.playwright/
+test-results/
+playwright-report/
+.verification/

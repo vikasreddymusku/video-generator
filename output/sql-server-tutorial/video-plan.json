@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "compositionId": "SqlServerDDL-Tutorial",
+  "slug": "sql-server-tutorial",
+  "title": "SQL Server Tutorial",
+  "brand": "Tinitiate AI Solutions",
+  "sourceHash": "5d9c60cc8020e1f63c79ffae1a7c262a2ec7bd93d21086b2c5b0cf2ec95cbc4f",
+  "durationSeconds": 90,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "totalFrames": 2700,
+  "theme": "future-neon-blue",
+  "voiceover": {
+    "mode": "continuous",
+    "text": "Explore Data Definition Language in SQL Server, and learn how database structures are created, changed, and removed. DDL commands establish a database schema and organize objects such as tables, indexes, views, schemas, and sequences. They also provide the structural foundation for relationships and data integrity. The core workflow has three commands. CREATE adds new database objects. ALTER modifies existing structures. DROP removes objects that are no longer required. Begin by selecting the tinitiate database and creating the employees schema. A user is created, assigned authorization for that schema, and configured to use it as the default location for database objects. CREATE TABLE defines each object and its columns. In this example, the employee table stores identifiers, names, jobs, manager references, salary, commission, and department numbers using appropriate SQL Server data types. ALTER TABLE evolves existing structures. You can add or drop the employee hire date, change the projects budget precision, and remove or restore the end date in the employee-project assignment table. DROP permanently removes an existing object. Here, the department table is dropped, then recreated with its department number, name, and location columns. Build a practical foundation in SQL Server DDL with Tinitiate AI Solutions. Enroll now at Tinitiate AI dot com. Learn. Build. Lead the future."
+  },
+  "fullVoiceover": "Explore Data Definition Language in SQL Server, and learn how database structures are created, changed, and removed. DDL commands establish a database schema and organize objects such as tables, indexes, views, schemas, and sequences. They also provide the structural foundation for relationships and data integrity. The core workflow has three commands. CREATE adds new database objects. ALTER modifies existing structures. DROP removes objects that are no longer required. Begin by selecting the tinitiate database and creating the employees schema. A user is created, assigned authorization for that schema, and configured to use it as the default location for database objects. CREATE TABLE defines each object and its columns. In this example, the employee table stores identifiers, names, jobs, manager references, salary, commission, and department numbers using appropriate SQL Server data types. ALTER TABLE evolves existing structures. You can add or drop the employee hire date, change the projects budget precision, and remove or restore the end date in the employee-project assignment table. DROP permanently removes an existing object. Here, the department table is dropped, then recreated with its department number, name, and location columns. Build a practical foundation in SQL Server DDL with Tinitiate AI Solutions. Enroll now at Tinitiate AI dot com. Learn. Build. Lead the future.",
+  "contact": {
+    "cta": "Enroll Now",
+    "website": "www.tinitiateai.com",
+    "email": "contact@tinitiateai.com",
+    "phone": "+91 6309123485",
+    "address": "13-16-58, Road No 4, Kamala Nagar, P&T Colony, Chaitanyapuri, Hyderabad, 500060, Telangana, India",
+    "tagline": "LEARN. BUILD. LEAD THE FUTURE."
+  },
+  "scenes": [
+    {
+      "id": "ddl-intro",
+      "type": "brand-intro",
+      "startFrame": 0,
+      "durationInFrames": 210,
+      "headline": "SQL Server DDL",
+      "supportingText": [
+        "Data Definition Language",
+        "Create, modify, and remove database structures"
+      ],
+      "items": [],
+      "visualConcept": "A luminous SQL database cylinder materializes from cyan scan lines while the lesson title resolves in large white typography with a restrained yellow accent.",
+      "animationDirection": "scale",
+      "voiceover": "Explore Data Definition Language in SQL Server, and learn how database structures are created, changed, and removed.",
+      "transition": "light-sweep",
+      "suggestedSfx": [
+        "impact",
+        "whoosh"
+      ],
+      "code": null,
+      "diagram": null,
+      "metrics": null
+    },
+    {
+      "id": "ddl-foundation",
+      "type": "hero-title",
+      "startFrame": 210,
+      "durationInFrames": 330,
+      "headline": "The Structural Foundation of SQL Server",
+      "supportingText": [
+        "Establish database schemas",
+        "Organize database objects",
+        "Support relationships and data integrity"
+      ],
+      "items": [
+        {
+          "label": "Objects",
+          "detail": "Tables, indexes, views, schemas, sequences, and more"
+        },
+        {
+          "label": "Purpose",
+          "detail": "Define and manage database structure"
+        }
+      ],
+      "visualConcept": "A central schema blueprint expands into distinct object glyphs, with generous spacing and subtle HUD lines emphasizing structure rather than decoration.",
+      "animationDirection": "up",
+      "voiceover": "DDL commands establish a database schema and organize objects such as tables, indexes, views, schemas, and sequences. They also provide the structural foundation for relationships and data integrity.",
+      "transition": "glow-wipe",
+      "suggestedSfx": [
+        "whoosh"
+      ],
+      "code": null,
+      "diagram": null,
+      "metrics": null
+    },
+    {
+      "id": "ddl-command-flow",
+      "type": "diagram",
+      "startFrame": 540,
+      "durationInFrames": 360,
+      "headline": "The Core DDL Workflow",
+      "supportingText": [
+        "Define the structure",
+        "Evolve the structure",
+        "Remove the structure"
+      ],
+      "items": [],
+      "visualConcept": "Three large command nodes form a left-to-right neon pipeline. A cyan pulse travels from CREATE through ALTER to DROP, with the active node receiving a yellow edge glow.",
+      "animationDirection": "right",
+      "voiceover": "The core workflow has three commands. CREATE adds new database objects. ALTER modifies existing structures. DROP removes objects that are no longer required.",
+      "transition": "directional-wipe",
+      "suggestedSfx": [
+        "click",
+        "whoosh"
+      ],
+      "code": null,
+      "diagram": {
+        "direction": "left-to-right",
+        "activeNodeId": "create",
+        "nodes": [
+          {
+            "id": "create",
+            "label": "CREATE",
+            "detail": "Create new database objects",
+            "group": "DDL commands"
+          },
+          {
+            "id": "alter",
+            "label": "ALTER",
+            "detail": "Modify existing database objects",
+            "group": "DDL commands"
+          },
+          {
+            "id": "drop",
+            "label": "DROP",
+            "detail": "Delete existing database objects",
+            "group": "DDL commands"
+          }
+        ],
+        "edges": [
+          {
+            "from": "create",
+            "to": "alter",
+            "label": "modify structure"
+          },
+          {
+            "from": "alter",
+            "to": "drop",
+            "label": "remove object"
+          }
+        ],
+        "sourceEvidence": [
+          "### CREATE:\n* Used to create new database objects such as tables, indexes, views, schemas, sequences, and other objects.",
+          "### ALTER:\n* Modifies the structure of existing database objects, such as adding or dropping columns from a table.",
+          "### DROP:\n* Deletes existing database objects, such as tables, indexes, or views."
+        ]
+      },
+      "metrics": null
+    },
+    {
+      "id": "schema-setup",
+      "type": "code",
+      "startFrame": 900,
+      "durationInFrames": 390,
+      "headline": "Create and Assign the Employees Schema",
+      "supportingText": [
+        "Select the database",
+        "Create the schema and user",
+        "Set schema authorization and default schema"
+      ],
+      "items": [],
+      "visualConcept": "A focused SQL editor occupies the left two-thirds of the frame while a compact schema-and-user relationship visualization animates on the right. Highlighting advances by logical statement.",
+      "animationDirection": "left",
+      "voiceover": "Begin by selecting the tinitiate database and creating the employees schema. A user is created, assigned authorization for that schema, and configured to use it as the default location for database objects.",
+      "transition": "zoom-through",
+      "suggestedSfx": [
+        "click",
+        "whoosh"
+      ],
+      "code": {
+        "language": "sql",
+        "filename": "schema_setup.sql",
+        "code": "-- Use database\nUSE tinitiate;\n\n-- Schema DDL\nCREATE SCHEMA employees;\nCREATE USER ti WITH PASSWORD = 'Tinitiate!23';\nALTER AUTHORIZATION ON SCHEMA::employees TO ti;\n\n-- Set the schema where you want to create the DB objects\nALTER USER ti WITH DEFAULT_SCHEMA = employees;",
+        "highlightLines": [
+          2,
+          5,
+          6,
+          7,
+          10
+        ],
+        "mode": "editor",
+        "sourceEvidence": "-- Use database\nUSE tinitiate;\n\n-- Schema DDL\nCREATE SCHEMA employees;\nCREATE USER ti WITH PASSWORD = 'Tinitiate!23';\nALTER AUTHORIZATION ON SCHEMA::employees TO ti;\n\n-- Set the schema where you want to create the DB objects\nALTER USER ti WITH DEFAULT_SCHEMA = employees;"
+      },
+      "diagram": null,
+      "metrics": null
+    },
+    {
+      "id": "create-employee-table",
+      "type": "code",
+      "startFrame": 1290,
+      "durationInFrames": 450,
+      "headline": "Define a Table with CREATE TABLE",
+      "supportingText": [
+        "Object: employees.emp",
+        "Columns describe the employee record",
+        "Data types shape the stored values"
+      ],
+      "items": [
+        {
+          "label": "Identifiers",
+          "detail": "empno, mgr, and deptno"
+        },
+        {
+          "label": "Employee details",
+          "detail": "ename and job"
+        },
+        {
+          "label": "Compensation",
+          "detail": "sal and commission"
+        }
+      ],
+      "visualConcept": "The SQL editor reveals the table definition line by line. A synchronized side panel groups columns into identifiers, employee details, and compensation without obscuring the source code.",
+      "animationDirection": "up",
+      "voiceover": "CREATE TABLE defines each object and its columns. In this example, the employee table stores identifiers, names, jobs, manager references, salary, commission, and department numbers using appropriate SQL Server data types.",
+      "transition": "light-sweep",
+      "suggestedSfx": [
+        "click"
+      ],
+      "code": {
+        "language": "sql",
+        "filename": "employees_emp.sql",
+        "code": "-- Create table employees.emp\nCREATE TABLE employees.emp\n( \n  empno      INT,\n  ename      VARCHAR(10),\n  job        VARCHAR(9),\n  mgr        NUMERIC(4),\n  sal        NUMERIC(7,2),\n  commission NUMERIC(7,2),\n  deptno     INT \n);",
+        "highlightLines": [
+          2,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "mode": "editor",
+        "sourceEvidence": "-- Create table employees.emp\nCREATE TABLE employees.emp\n( \n  empno      INT,\n  ename      VARCHAR(10),\n  job        VARCHAR(9),\n  mgr        NUMERIC(4),\n  sal        NUMERIC(7,2),\n  commission NUMERIC(7,2),\n  deptno     INT \n);"
+      },
+      "diagram": null,
+      "metrics": null
+    },
+    {
+      "id": "alter-existing-tables",
+      "type": "code",
+      "startFrame": 1740,
+      "durationInFrames": 390,
+      "headline": "Evolve Existing Structures with ALTER",
+      "supportingText": [
+        "Add or drop columns",
+        "Change a column data type",
+        "Restore a previous structure"
+      ],
+      "items": [],
+      "visualConcept": "A split editor presents alteration statements in three visual groups: employee, projects, and employee-project assignments. Cyan highlights indicate changes, while yellow reverse arrows mark the restoration statements.",
+      "animationDirection": "right",
+      "voiceover": "ALTER TABLE evolves existing structures. You can add or drop the employee hire date, change the projects budget precision, and remove or restore the end date in the employee-project assignment table.",
+      "transition": "glow-wipe",
+      "suggestedSfx": [
+        "click",
+        "whoosh"
+      ],
+      "code": {
+        "language": "sql",
+        "filename": "alter_tables.sql",
+        "code": "-- Alter table \"emp\": Add a new column called \"hire_date\" of type DATE.\nALTER TABLE employees.emp ADD hire_date DATE;\n-- To change back to previous\nALTER TABLE employees.emp DROP COLUMN hire_date;\n\n-- Alter table \"projects\":\n-- Change the data type of the column \"budget\" to DECIMAL(12,2).\nALTER TABLE employees.projects ALTER COLUMN budget DECIMAL(12,2);\n-- To change back to previous\nALTER TABLE employees.projects ALTER COLUMN budget NUMERIC(12,2);\n\n-- Alter table \"emp_projects\": Drop the column \"end_date\".\nALTER TABLE employees.emp_projects DROP COLUMN end_date;\n-- To change back to previous\nALTER TABLE employees.emp_projects ADD end_date DATE;",
+        "highlightLines": [
+          2,
+          4,
+          8,
+          10,
+          13,
+          15
+        ],
+        "mode": "editor",
+        "sourceEvidence": "-- Alter table \"emp\": Add a new column called \"hire_date\" of type DATE.\nALTER TABLE employees.emp ADD hire_date DATE;\n-- To change back to previous\nALTER TABLE employees.emp DROP COLUMN hire_date;\n\n-- Alter table \"projects\":\n-- Change the data type of the column \"budget\" to DECIMAL(12,2).\nALTER TABLE employees.projects ALTER COLUMN budget DECIMAL(12,2);\n-- To change back to previous\nALTER TABLE employees.projects ALTER COLUMN budget NUMERIC(12,2);\n\n-- Alter table \"emp_projects\": Drop the column \"end_date\".\nALTER TABLE employees.emp_projects DROP COLUMN end_date;\n-- To change back to previous\nALTER TABLE employees.emp_projects ADD end_date DATE;"
+      },
+      "diagram": null,
+      "metrics": null
+    },
+    {
+      "id": "drop-and-recreate",
+      "type": "code",
+      "startFrame": 2130,
+      "durationInFrames": 240,
+      "headline": "Remove an Object with DROP",
+      "supportingText": [
+        "Drop employees.dept",
+        "Recreate the table when needed"
+      ],
+      "items": [],
+      "visualConcept": "The department table glyph dissolves after the DROP statement, then rebuilds from a cyan wireframe as the CREATE statement is highlighted.",
+      "animationDirection": "scale",
+      "voiceover": "DROP permanently removes an existing object. Here, the department table is dropped, then recreated with its department number, name, and location columns.",
+      "transition": "bloom",
+      "suggestedSfx": [
+        "impact",
+        "click"
+      ],
+      "code": {
+        "language": "sql",
+        "filename": "drop_dept.sql",
+        "code": "-- To drop dept table in emp schema\nDROP TABLE employees.dept;\n\n-- To again create it\nCREATE TABLE employees.dept (\n    deptno  INT,\n    dname   VARCHAR(100),\n    loc VARCHAR(13)\n);",
+        "highlightLines": [
+          2,
+          5,
+          6,
+          7,
+          8
+        ],
+        "mode": "editor",
+        "sourceEvidence": "-- To drop dept table in emp schema\nDROP TABLE employees.dept;\n\n-- To again create it\nCREATE TABLE employees.dept (\n    deptno  INT,\n    dname   VARCHAR(100),\n    loc VARCHAR(13)\n);"
+      },
+      "diagram": null,
+      "metrics": null
+    },
+    {
+      "id": "enroll-cta",
+      "type": "cta",
+      "startFrame": 2370,
+      "durationInFrames": 330,
+      "headline": "Build Your SQL Server Foundation",
+      "supportingText": [
+        "Enroll Now",
+        "www.tinitiateai.com",
+        "contact@tinitiateai.com",
+        "+91 6309123485",
+        "13-16-58, Road No 4, Kamala Nagar, P&T Colony, Chaitanyapuri, Hyderabad, 500060, Telangana, India"
+      ],
+      "items": [
+        {
+          "label": "Tinitiate AI Solutions",
+          "detail": "LEARN. BUILD. LEAD THE FUTURE."
+        }
+      ],
+      "visualConcept": "A clean cyan-outline call-to-action panel settles at center with the website in the largest type. Contact details remain fully readable inside safe margins, with a restrained yellow accent beneath the tagline.",
+      "animationDirection": "up",
+      "voiceover": "Build a practical foundation in SQL Server DDL with Tinitiate AI Solutions. Enroll now at Tinitiate AI dot com. Learn. Build. Lead the future.",
+      "transition": "fade",
+      "suggestedSfx": [
+        "whoosh",
+        "impact"
+      ],
+      "code": null,
+      "diagram": null,
+      "metrics": null
+    }
+  ]
+}

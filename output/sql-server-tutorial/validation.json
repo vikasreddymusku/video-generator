@@ -1,0 +1,14 @@
+{
+  "valid": true,
+  "checks": {
+    "renderSucceeded": true,
+    "nonemptyPlayableVideo": true,
+    "dimensions": true,
+    "fps": true,
+    "duration": true,
+    "frameCount": true,
+    "audioStream": true,
+    "voiceover": true
+  },
+  "errors": []
+}

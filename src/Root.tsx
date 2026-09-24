@@ -1,45 +1,30 @@
-import "./index.css";
+import React from "react";
 import { Composition } from "remotion";
-import { HelloWorld } from "./HelloWorld";
-import { Logo } from "./HelloWorld/Logo";
-
-// Each <Composition> is an entry in the sidebar!
+import { DynamicVideo } from "./compositions/DynamicVideo";
+import preview from "./generated/preview.json";
+import type { VideoProps } from "./automation/types";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition
-        // You can take the "id" to render a video:
-        // npx remotion render HelloWorld
-        id="HelloWorld"
-        component={HelloWorld}
-        durationInFrames={150}
-        fps={30}
-        width={1920}
-        height={1080}
-        // You can override these props for each render:
-        // https://www.remotion.dev/docs/parametrized-rendering
-        defaultProps={{
-          titleText: "Welcome to Remotion",
-          titleColor: "#000000",
-          logoColor1: "#91EAE4",
-          logoColor2: "#86A8E7",
-        }}
-      />
-
-      {/* Mount any React component to make it show up in the sidebar and work on it individually! */}
-      <Composition
-        id="OnlyLogo"
-        component={Logo}
-        durationInFrames={150}
-        fps={30}
-        width={1920}
-        height={1080}
-        defaultProps={{
-          logoColor1: "#91dAE2",
-          logoColor2: "#86A8E7",
-        }}
-      />
+      {[preview.plan.compositionId, "DynamicVideo"].map((id) => (
+        <Composition
+          key={id}
+          id={id}
+          component={DynamicVideo}
+          defaultProps={preview as VideoProps}
+          durationInFrames={preview.plan.totalFrames}
+          fps={preview.plan.fps}
+          width={preview.plan.width}
+          height={preview.plan.height}
+          calculateMetadata={({ props }) => ({
+            durationInFrames: props.plan.totalFrames,
+            fps: props.plan.fps,
+            width: props.plan.width,
+            height: props.plan.height,
+          })}
+        />
+      ))}
     </>
   );
 };
