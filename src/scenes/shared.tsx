@@ -1,9 +1,10 @@
-import type { ThemeConfig, VideoPlan, VideoScene } from "../automation/types";
+import type { ResolvedBranding, ThemeConfig, VideoPlan, VideoScene } from "../automation/types";
 import { AnimatedTitle } from "../components/AnimatedTitle";
 export type SceneProps = {
   scene: VideoScene;
   theme: ThemeConfig;
   plan: VideoPlan;
+  branding?: ResolvedBranding;
 };
 export const Heading = ({ scene, theme }: SceneProps) => (
   <>

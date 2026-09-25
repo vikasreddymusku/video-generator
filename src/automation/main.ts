@@ -14,6 +14,13 @@ import { generateVoiceover, alignScenes } from "./tts-elevenlabs";
 import { prepareAssets } from "./assets";
 import { renderVideo } from "./render";
 import { validateVideo } from "./validate";
+import {
+  applyBrandingTiming,
+  prepareBrandingAssets,
+  resolveBranding,
+  stripBrandingTiming,
+} from "./branding";
+import type { BrandingOverride, ResolvedBranding } from "./types";
 
 export async function runAutomation(
   args = process.argv.slice(2),
@@ -25,7 +32,13 @@ export async function runAutomation(
     renderVideo?: typeof renderVideo;
     validateVideo?: typeof validateVideo;
     sourceDocument?: SourceDocument;
-    jobOptions?: { slug: string; durationMode: "auto" | "fixed"; durationSeconds?: number };
+    jobOptions?: {
+      slug: string;
+      durationMode: "auto" | "fixed";
+      durationSeconds?: number;
+      branding?: ResolvedBranding;
+      brandingOverride?: BrandingOverride;
+    };
     onAudio?: (duration: number) => Promise<void>;
     onStage?: (stage: "PLANNING" | "NARRATION_PREPARED" | "GENERATING_VOICE" | "ALIGNING_TIMING" | "RENDERING" | "VALIDATING" | "COMPLETED") => void;
   } = {},
@@ -55,6 +68,17 @@ export async function runAutomation(
   const themes = themeCatalogSchema.parse(
     await readJson(path.join(root, "themes.json")),
   );
+  const brandingFor = (title: string, fps: number) =>
+    prepareBrandingAssets(
+      root,
+      dependencies.jobOptions?.branding ??
+        resolveBranding(
+          config,
+          title,
+          fps,
+          dependencies.jobOptions?.brandingOverride,
+        ),
+    );
   const queueFile = path.join(root, "video-source.md");
   const selected = value("--input");
   const standalone = value("--source");
@@ -99,6 +123,10 @@ export async function runAutomation(
         content.metadata.duration_mode = dependencies.jobOptions.durationMode;
         content.metadata.duration_seconds = dependencies.jobOptions.durationSeconds;
       }
+      let branding = await brandingFor(
+        content.metadata.title,
+        content.metadata.fps,
+      );
       const directory = localPath(
         root,
         path.join(config.render.outputDir, content.metadata.slug),
@@ -125,6 +153,7 @@ export async function runAutomation(
           theme,
           planFile: path.join(directory, "video-plan.json"),
         });
+        branding = { ...branding, videoTitle: plan.title };
         await save(path.join(directory, "metadata.json"), {
           ...content,
           ...planner.metadata,
@@ -134,11 +163,13 @@ export async function runAutomation(
           plan.voiceover.text + "\n",
         );
         if (preview) {
+          plan = applyBrandingTiming(plan, branding);
           await save(path.join(root, "src", "generated", "preview.json"), {
             plan,
             theme,
             audio: await prepareAssets(root, plan.slug),
             mix: config.audio,
+            branding,
           });
           await log("Visual preview prepared without TTS.");
           console.log(
@@ -151,12 +182,13 @@ export async function runAutomation(
           const timing = videoPlanSchema.parse(
             await readJson(path.join(directory, "render-plan.json")),
           );
+          const timingWithoutBranding = stripBrandingTiming(timing, branding);
           if (
   content.metadata.duration_mode ===
     "fixed" &&
-  (timing.durationSeconds !==
+  (timingWithoutBranding.durationSeconds !==
     plan.durationSeconds ||
-    timing.totalFrames !==
+    timingWithoutBranding.totalFrames !==
       plan.totalFrames)
 ) {
   throw new Error(
@@ -167,7 +199,7 @@ export async function runAutomation(
 if (
   content.metadata.duration_mode ===
     "auto" &&
-  timing.totalFrames <
+  timingWithoutBranding.totalFrames <
     plan.totalFrames
 ) {
   throw new Error(
@@ -176,7 +208,7 @@ if (
 }
 
 const normalizedTiming = {
-  ...timing,
+  ...timingWithoutBranding,
 
   /*
    * Only post-TTS timing is allowed to differ.
@@ -190,7 +222,7 @@ const normalizedTiming = {
     plan.totalFrames,
 
   scenes:
-    timing.scenes.map(
+    timingWithoutBranding.scenes.map(
       (scene, index) => ({
         ...scene,
 
@@ -271,12 +303,14 @@ const normalizedTiming = {
         .endingBufferSeconds,
   }),
 );
+        plan = applyBrandingTiming(plan, branding);
         await save(path.join(directory, "render-plan.json"), plan);
         const props = {
           plan,
           theme,
           audio: await prepareAssets(root, plan.slug, audio.file),
           mix: config.audio,
+          branding,
         };
         dependencies.onStage?.("RENDERING");
         const output = await (dependencies.renderVideo ?? renderVideo)(

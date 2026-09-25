@@ -9,7 +9,7 @@ export default defineConfig({
     viewport: { width: 1440, height: 1000 },
   },
   webServer: {
-    command: "npx tsx scripts/test-server.ts",
+    command: "node --require ./scripts/tsx-runtime.cjs --require tsx/cjs scripts/test-server.ts",
     url: "http://127.0.0.1:3199/api/settings",
     reuseExistingServer: false,
     timeout: 30000,

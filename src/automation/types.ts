@@ -2,6 +2,50 @@ import { z } from "zod";
 
 const text = z.string().min(1);
 const positive = z.number().finite().positive();
+const publicBrandAsset = z
+  .string()
+  .regex(/^branding\/[a-z0-9-]+\.(?:mp4|webm|png|jpe?g|webp)$/i);
+export const brandingModeSchema = z.enum(["dynamic", "uploaded", "none"]);
+export const brandingAnimationSchema = z.enum(["enter-scale", "fade-up", "fade"]);
+export const brandingConfigSchema = z.object({
+  logoAsset: publicBrandAsset.optional(),
+  intro: z.object({
+    enabled: z.boolean().default(true),
+    mode: brandingModeSchema.default("dynamic"),
+    asset: publicBrandAsset.optional(),
+    durationSeconds: positive.max(30).default(4),
+    logo: z.object({ enabled: z.boolean().default(true), durationSeconds: positive.max(15).default(1), animation: brandingAnimationSchema.default("enter-scale") }).default({ enabled: true, durationSeconds: 1, animation: "enter-scale" }),
+    brandName: z.object({ enabled: z.boolean().default(true), durationSeconds: positive.max(15).default(1), animation: brandingAnimationSchema.default("fade-up") }).default({ enabled: true, durationSeconds: 1, animation: "fade-up" }),
+    tagline: z.object({ enabled: z.boolean().default(true), durationSeconds: positive.max(15).default(1), animation: brandingAnimationSchema.default("fade") }).default({ enabled: true, durationSeconds: 1, animation: "fade" }),
+    holdDurationSeconds: z.number().finite().nonnegative().max(15).default(1),
+  }).default({ enabled: true, mode: "dynamic", durationSeconds: 4, logo: { enabled: true, durationSeconds: 1, animation: "enter-scale" }, brandName: { enabled: true, durationSeconds: 1, animation: "fade-up" }, tagline: { enabled: true, durationSeconds: 1, animation: "fade" }, holdDurationSeconds: 1 }),
+  outro: z.object({
+    enabled: z.boolean().default(true),
+    mode: brandingModeSchema.default("dynamic"),
+    asset: publicBrandAsset.optional(),
+    durationSeconds: positive.max(30).default(5),
+    showVideoTitle: z.boolean().default(true),
+    showWebsite: z.boolean().default(true),
+    showEmail: z.boolean().default(true),
+    showPhone: z.boolean().default(true),
+    showAddress: z.boolean().default(true),
+    showTagline: z.boolean().default(true),
+    showQrCode: z.boolean().default(false),
+    qrDestination: z.string().url().startsWith("https://").optional(),
+    qrSize: positive.max(600).default(190),
+    qrLabel: z.string().trim().min(1).max(80).default("Scan to enroll"),
+    qrPosition: z.enum(["left", "right"]).default("right"),
+  }).default({ enabled: true, mode: "dynamic", durationSeconds: 5, showVideoTitle: true, showWebsite: true, showEmail: true, showPhone: true, showAddress: true, showTagline: true, showQrCode: false, qrSize: 190, qrLabel: "Scan to enroll", qrPosition: "right" }),
+}).default({
+  intro: { enabled: true, mode: "dynamic", durationSeconds: 4, logo: { enabled: true, durationSeconds: 1, animation: "enter-scale" }, brandName: { enabled: true, durationSeconds: 1, animation: "fade-up" }, tagline: { enabled: true, durationSeconds: 1, animation: "fade" }, holdDurationSeconds: 1 },
+  outro: { enabled: true, mode: "dynamic", durationSeconds: 5, showVideoTitle: true, showWebsite: true, showEmail: true, showPhone: true, showAddress: true, showTagline: true, showQrCode: false, qrSize: 190, qrLabel: "Scan to enroll", qrPosition: "right" },
+});
+export type BrandingConfig = z.infer<typeof brandingConfigSchema>;
+export const brandingOverrideSchema = z.object({
+  intro: z.object({ mode: brandingModeSchema.optional(), asset: publicBrandAsset.optional() }).strict().optional(),
+  outro: z.object({ mode: brandingModeSchema.optional(), asset: publicBrandAsset.optional() }).strict().optional(),
+}).strict();
+export type BrandingOverride = z.infer<typeof brandingOverrideSchema>;
 export const themeSchema = z.object({
   name: text,
   background: text,
@@ -42,6 +86,7 @@ export const configSchema = z.object({
     })
     .partial()
     .optional(),
+  branding: brandingConfigSchema,
   video: z
   .object({
     durationMode: z.enum(["auto", "fixed"]).default("auto"),
@@ -122,6 +167,7 @@ export const configSchema = z.object({
 export type AutomationConfig = z.infer<typeof configSchema>;
 export const sceneTypes = [
   "brand-intro",
+  "brand-outro",
   "hero-title",
   "process-flow",
   "feature-grid",
@@ -435,4 +481,19 @@ export type VideoProps = {
   theme: ThemeConfig;
   audio: AudioAssets;
   mix: AutomationConfig["audio"];
+  branding?: ResolvedBranding;
+};
+
+export type ResolvedBranding = {
+  brandName: string;
+  tagline: string;
+  cta: string;
+  website: string;
+  email: string;
+  phone: string;
+  address: string;
+  videoTitle: string;
+  intro: BrandingConfig["intro"] & { frames: number };
+  outro: BrandingConfig["outro"] & { frames: number; qrEnabled: boolean; qrAsset?: string };
+  logoAsset?: string;
 };

@@ -5,8 +5,9 @@ import type {
   JobEvent,
   NormalizedSource,
   SettingsView,
+  BrandingView,
 } from "../server/contracts";
-import type { VideoPlan } from "../automation/types";
+import type { BrandingConfig, ResolvedBranding, VideoPlan } from "../automation/types";
 import "./styles.css";
 
 const nav = [
@@ -63,7 +64,7 @@ function Empty({
 }) {
   return (
     <div className="empty">
-      <span className="empty-icon">◇</span>
+      <span className="empty-icon" aria-hidden="true">◇</span>
       <h3>{title}</h3>
       <p>{children}</p>
       <a className="button subtle" href="/videos/new">
@@ -187,7 +188,7 @@ function App() {
       </a>
       <aside className={mobile ? "sidebar open" : "sidebar"}>
         <a className="brand" href="/">
-          <span className="brand-mark">t.</span>
+          <span className="brand-mark" aria-hidden="true">t.</span>
           <span>
             TINITIATE<small>VIDEO STUDIO</small>
           </span>
@@ -197,9 +198,9 @@ function App() {
           {nav.map(([url, icon, name]) => (
             <a
               key={url}
-              className={route === url ? "selected" : ""}
+              className={route === url || (url === "/settings" && route.startsWith("/settings/")) ? "selected" : ""}
               href={url}
-              aria-current={route === url ? "page" : undefined}
+              aria-current={route === url || (url === "/settings" && route.startsWith("/settings/")) ? "page" : undefined}
             >
               <span aria-hidden="true">{icon}</span>
               {name}
@@ -236,7 +237,9 @@ function App() {
           </button>
           <span>
             Video Studio <span className="slash">/</span>{" "}
-            {nav.find((n) => n[0] === route)?.[2] ?? "Job details"}
+            {route === "/settings/branding"
+              ? "Branding"
+              : nav.find((n) => n[0] === route)?.[2] ?? "Job details"}
           </span>
           <span className="local-label">● LOCAL INSTANCE</span>
         </div>
@@ -336,6 +339,8 @@ function App() {
             <Scheduler jobs={jobs} actions={actions} />
           ) : route === "/videos" ? (
             <Library jobs={completed} />
+          ) : route === "/settings/branding" ? (
+            <BrandingPage notify={notify} />
           ) : route === "/settings" ? (
             <SettingsPage
               settings={settings!}
@@ -752,6 +757,8 @@ function Create({
     [schedule, setSchedule] = useState(""),
     [durationMode, setDurationMode] = useState(settings.durationMode),
     [seconds, setSeconds] = useState(settings.durationSeconds ?? 60),
+    [introBranding, setIntroBranding] = useState<"inherit" | "dynamic" | "uploaded" | "none">("inherit"),
+    [outroBranding, setOutroBranding] = useState<"inherit" | "dynamic" | "uploaded" | "none">("inherit"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [created, setCreated] = useState<Job[]>([]),
@@ -813,6 +820,18 @@ function Create({
         theme,
         durationMode,
         ...(durationMode === "fixed" ? { durationSeconds: seconds } : {}),
+        ...(introBranding !== "inherit" || outroBranding !== "inherit"
+          ? {
+              brandingOverride: {
+                ...(introBranding !== "inherit"
+                  ? { intro: { mode: introBranding } }
+                  : {}),
+                ...(outroBranding !== "inherit"
+                  ? { outro: { mode: outroBranding } }
+                  : {}),
+              },
+            }
+          : {}),
         scheduledAt:
           timing === "schedule" ? new Date(schedule).toISOString() : null,
       };
@@ -1065,6 +1084,52 @@ function Create({
           <section className="form-section">
             <div className="step-title">
               <span>03</span>
+              <div>
+                <h2>Branding for this batch</h2>
+                <p>Use the global branding setup or change how this batch starts and ends.</p>
+              </div>
+            </div>
+            <div className="fields">
+              <label>
+                Intro
+                <select
+                  value={introBranding}
+                  onChange={(e) =>
+                    setIntroBranding(
+                      e.target.value as "inherit" | "dynamic" | "uploaded" | "none",
+                    )
+                  }
+                >
+                  <option value="inherit">Use global setting</option>
+                  <option value="dynamic">Use dynamic intro</option>
+                  <option value="uploaded">Use uploaded intro</option>
+                  <option value="none">No intro</option>
+                </select>
+              </label>
+              <label>
+                Outro
+                <select
+                  value={outroBranding}
+                  onChange={(e) =>
+                    setOutroBranding(
+                      e.target.value as "inherit" | "dynamic" | "uploaded" | "none",
+                    )
+                  }
+                >
+                  <option value="inherit">Use global setting</option>
+                  <option value="dynamic">Use dynamic outro</option>
+                  <option value="uploaded">Use uploaded outro</option>
+                  <option value="none">No outro</option>
+                </select>
+              </label>
+            </div>
+            <p className="hint">
+              Uploaded choices use the assets in <a href="/settings/branding">global branding settings</a>. Existing jobs keep their own resolved branding.
+            </p>
+          </section>
+          <section className="form-section">
+            <div className="step-title">
+              <span>04</span>
               <div>
                 <h2>Choose your timing</h2>
                 <p>Generate now or plan ahead.</p>
@@ -1719,7 +1784,11 @@ function SettingsPage({
   };
   return (
     <>
-      <Header eyebrow="WORKSPACE CONFIGURATION" title="Settings">
+      <Header
+        eyebrow="WORKSPACE CONFIGURATION"
+        title="Settings"
+        action={<a className="button subtle" href="/settings/branding">Video branding →</a>}
+      >
         Your defaults, providers and production worker.
       </Header>
       <form onSubmit={save} className="settings-form">
@@ -1868,6 +1937,290 @@ function SettingsPage({
           </button>
         </div>
       </form>
+    </>
+  );
+}
+
+type BrandingSlot = "logo" | "intro" | "outro";
+type BrandingMode = "dynamic" | "uploaded" | "none";
+
+function BrandingAssetControl({
+  slot,
+  asset,
+  accept,
+  label,
+  busy,
+  onUpload,
+  onRemove,
+}: {
+  slot: BrandingSlot;
+  asset?: string;
+  accept: string;
+  label: string;
+  busy: boolean;
+  onUpload: (file: File) => Promise<void>;
+  onRemove: () => Promise<void>;
+}) {
+  const id = `branding-${slot}-asset`;
+  return (
+    <div className="asset-control">
+      <div className="asset-preview">
+        {asset && slot === "logo" ? (
+          <img src={`/api/branding/assets/logo?asset=${encodeURIComponent(asset)}`} alt="Current brand logo" />
+        ) : asset ? (
+          <video src={`/api/branding/assets/${slot}?asset=${encodeURIComponent(asset)}`} muted preload="metadata" aria-label={`Current uploaded ${slot} video`} />
+        ) : (
+          <span aria-hidden="true">◇</span>
+        )}
+      </div>
+      <div>
+        <strong>{asset ? `Current ${label.toLowerCase()}` : `No ${label.toLowerCase()} uploaded`}</strong>
+        <small>{asset ?? `Choose a ${label.toLowerCase()} to make it available globally.`}</small>
+        <div className="asset-actions">
+          <label className="button subtle" htmlFor={id}>
+            {asset ? "Replace" : "Upload"}
+          </label>
+          <input
+            className="visually-hidden"
+            id={id}
+            type="file"
+            accept={accept}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void onUpload(file);
+            }}
+          />
+          {asset && (
+            <button className="button text-button" type="button" onClick={() => void onRemove()} disabled={busy}>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BrandingPage({ notify }: { notify: (message: string) => void }) {
+  const [data, setData] = useState<BrandingView>();
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<BrandingSlot>();
+  const [previewTitle, setPreviewTitle] = useState("AWS Data Engineering");
+  const [preview, setPreview] = useState<ResolvedBranding>();
+  useEffect(() => {
+    let mounted = true;
+    void api<BrandingView>("/branding")
+      .then((result) => {
+        if (mounted) setData(result);
+      })
+      .catch((reason: Error) => {
+        if (mounted) setError(reason.message);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  const update = (change: (branding: BrandingConfig) => BrandingConfig) =>
+    setData((current) =>
+      current ? { ...current, branding: change(current.branding) } : current,
+    );
+  const updateBrand = (key: keyof BrandingView["brand"], value: string) =>
+    setData((current) =>
+      current ? { ...current, brand: { ...current.brand, [key]: value } } : current,
+    );
+  const saveBranding = async () => {
+    if (!data) return;
+    setSaving(true);
+    setError("");
+    try {
+      const result = await api<BrandingView>("/branding", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      setData(result);
+      notify("Global video branding saved.");
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const upload = async (slot: BrandingSlot, file: File) => {
+    setUploading(slot);
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const result = await api<{ asset: string; branding: BrandingView }>(
+        `/branding/assets/${slot}`,
+        { method: "POST", body: form },
+      );
+      setData(result.branding);
+      notify(`${slot[0].toUpperCase()}${slot.slice(1)} asset uploaded.`);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setUploading(undefined);
+    }
+  };
+  const remove = async (slot: BrandingSlot) => {
+    setUploading(slot);
+    setError("");
+    try {
+      setData(await api<BrandingView>(`/branding/assets/${slot}`, { method: "DELETE" }));
+      notify(`${slot[0].toUpperCase()}${slot.slice(1)} asset removed.`);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setUploading(undefined);
+    }
+  };
+  const previewBranding = async () => {
+    if (!data) return;
+    setError("");
+    try {
+      const result = await api<{ branding: ResolvedBranding }>("/branding/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          title: previewTitle.trim() || "AWS Data Engineering",
+          brand: data.brand,
+          branding: data.branding,
+        }),
+      });
+      setPreview(result.branding);
+      notify("Branding preview updated locally.");
+    } catch (reason) {
+      setError((reason as Error).message);
+    }
+  };
+  if (!data)
+    return error ? (
+      <div className="alert" role="alert">{error}</div>
+    ) : (
+      <div className="skeleton" aria-label="Loading branding settings"><div /><div /></div>
+    );
+  const { brand, branding } = data;
+  const setIntro = (change: Partial<BrandingConfig["intro"]>) =>
+    update((value) => ({ ...value, intro: { ...value.intro, ...change } }));
+  const setOutro = (change: Partial<BrandingConfig["outro"]>) =>
+    update((value) => ({ ...value, outro: { ...value.outro, ...change } }));
+  return (
+    <>
+      <Header
+        eyebrow="GLOBAL VIDEO BRANDING"
+        title="Branding"
+        action={<a className="button subtle" href="/settings">← Settings</a>}
+      >
+        Set the shared identity, intro and outro used by new video jobs. Previewing stays local and never contacts a planner or voice provider.
+      </Header>
+      {error && <div className="alert" role="alert">{error}</div>}
+      <div className="branding-layout">
+        <div className="branding-form">
+          <section className="branding-section">
+            <div>
+              <div className="eyebrow">IDENTITY</div>
+              <h2>Global brand details</h2>
+              <p>These values are resolved into each new job so later global edits do not rewrite existing output.</p>
+            </div>
+            <div className="fields">
+              <label>Brand name<input value={brand.name} onChange={(e) => updateBrand("name", e.target.value)} /></label>
+              <label>Tagline<input value={brand.tagline} onChange={(e) => updateBrand("tagline", e.target.value)} /></label>
+              <label>Call to action<input value={brand.cta} onChange={(e) => updateBrand("cta", e.target.value)} /></label>
+              <label>Website<input value={brand.website} onChange={(e) => updateBrand("website", e.target.value)} /></label>
+              <label>Email<input type="email" value={brand.email} onChange={(e) => updateBrand("email", e.target.value)} /></label>
+              <label>Phone<input value={brand.phone} onChange={(e) => updateBrand("phone", e.target.value)} /></label>
+              <label className="full-field">Address<textarea rows={2} value={brand.address} onChange={(e) => updateBrand("address", e.target.value)} /></label>
+            </div>
+            <BrandingAssetControl
+              slot="logo"
+              asset={branding.logoAsset}
+              accept="image/png,image/jpeg,image/webp"
+              label="Logo"
+              busy={uploading === "logo"}
+              onUpload={(file) => upload("logo", file)}
+              onRemove={() => remove("logo")}
+            />
+          </section>
+          <section className="branding-section">
+            <div>
+              <div className="eyebrow">OPENING</div>
+              <h2>Intro</h2>
+              <p>The default dynamic intro lasts exactly four seconds: logo, brand name, tagline, then a short hold. Frame timing follows each video plan’s FPS.</p>
+            </div>
+            <div className="branding-controls">
+              <label className="check-label"><input type="checkbox" checked={branding.intro.enabled} onChange={(e) => setIntro({ enabled: e.target.checked })} /> Include an intro</label>
+              <div className="fields">
+                <label>Intro mode<select value={branding.intro.mode} onChange={(e) => setIntro({ mode: e.target.value as BrandingMode })}><option value="dynamic">Dynamic</option><option value="uploaded">Uploaded video</option><option value="none">None</option></select></label>
+                <label>Duration in seconds<input type="number" min="0.1" max="30" step="0.1" disabled={!branding.intro.enabled || branding.intro.mode === "none"} value={branding.intro.durationSeconds} onChange={(e) => setIntro({ durationSeconds: Number(e.target.value) })} /></label>
+              </div>
+              <BrandingAssetControl
+                slot="intro"
+                asset={branding.intro.asset}
+                accept="video/mp4,video/webm"
+                label="Intro video"
+                busy={uploading === "intro"}
+                onUpload={(file) => upload("intro", file)}
+                onRemove={() => remove("intro")}
+              />
+              {branding.intro.enabled && branding.intro.mode === "dynamic" && <div className="animation-grid">
+                {([
+                  ["logo", "Logo"],
+                  ["brandName", "Brand name"],
+                  ["tagline", "Tagline"],
+                ] as const).map(([key, name]) => {
+                  const item = branding.intro[key];
+                  return <fieldset key={key}><legend>{name}</legend><label className="check-label"><input type="checkbox" checked={item.enabled} onChange={(e) => setIntro({ [key]: { ...item, enabled: e.target.checked } })} /> Show</label><label>Animation<select value={item.animation} onChange={(e) => setIntro({ [key]: { ...item, animation: e.target.value as "enter-scale" | "fade-up" | "fade" } })}><option value="enter-scale">Enter and scale</option><option value="fade-up">Fade up</option><option value="fade">Fade</option></select></label><label>Seconds<input type="number" min="0.1" max="15" step="0.1" value={item.durationSeconds} onChange={(e) => setIntro({ [key]: { ...item, durationSeconds: Number(e.target.value) } })} /></label></fieldset>;
+                })}
+                <label>Hold after tagline<input type="number" min="0" max="15" step="0.1" value={branding.intro.holdDurationSeconds} onChange={(e) => setIntro({ holdDurationSeconds: Number(e.target.value) })} /></label>
+              </div>}
+            </div>
+          </section>
+          <section className="branding-section">
+            <div>
+              <div className="eyebrow">CLOSING</div>
+              <h2>Outro</h2>
+              <p>Dynamic outros use your shared contact details and call to action. A QR code is created only for the HTTPS destination you supply.</p>
+            </div>
+            <div className="branding-controls">
+              <label className="check-label"><input type="checkbox" checked={branding.outro.enabled} onChange={(e) => setOutro({ enabled: e.target.checked })} /> Include an outro</label>
+              <div className="fields">
+                <label>Outro mode<select value={branding.outro.mode} onChange={(e) => setOutro({ mode: e.target.value as BrandingMode })}><option value="dynamic">Dynamic</option><option value="uploaded">Uploaded video</option><option value="none">None</option></select></label>
+                <label>Duration in seconds<input type="number" min="0.1" max="30" step="0.1" disabled={!branding.outro.enabled || branding.outro.mode === "none"} value={branding.outro.durationSeconds} onChange={(e) => setOutro({ durationSeconds: Number(e.target.value) })} /></label>
+              </div>
+              <BrandingAssetControl
+                slot="outro"
+                asset={branding.outro.asset}
+                accept="video/mp4,video/webm"
+                label="Outro video"
+                busy={uploading === "outro"}
+                onUpload={(file) => upload("outro", file)}
+                onRemove={() => remove("outro")}
+              />
+              {branding.outro.enabled && branding.outro.mode === "dynamic" && <>
+                <div className="toggle-grid">
+                  {([
+                    ["showVideoTitle", "Video title"], ["showWebsite", "Website"], ["showEmail", "Email"], ["showPhone", "Phone"], ["showAddress", "Address"], ["showTagline", "Tagline"],
+                  ] as const).map(([key, name]) => <label className="check-label" key={key}><input type="checkbox" checked={branding.outro[key]} onChange={(e) => setOutro({ [key]: e.target.checked })} /> Show {name}</label>)}
+                </div>
+                <fieldset className="qr-settings"><legend>QR code</legend><label className="check-label"><input type="checkbox" checked={branding.outro.showQrCode} onChange={(e) => setOutro({ showQrCode: e.target.checked })} /> Show a QR code</label>{branding.outro.showQrCode && <div className="fields"><label className="full-field">HTTPS destination<input type="url" placeholder="https://example.com/enroll" value={branding.outro.qrDestination ?? ""} onChange={(e) => setOutro({ qrDestination: e.target.value || undefined })} /></label><label>Size in pixels<input type="number" min="1" max="600" value={branding.outro.qrSize} onChange={(e) => setOutro({ qrSize: Number(e.target.value) })} /></label><label>Position<select value={branding.outro.qrPosition} onChange={(e) => setOutro({ qrPosition: e.target.value as "left" | "right" })}><option value="right">Right</option><option value="left">Left</option></select></label><label className="full-field">Label<input value={branding.outro.qrLabel} onChange={(e) => setOutro({ qrLabel: e.target.value })} /></label></div>}<p className="hint">Leave the destination blank to keep the QR code out of the rendered video.</p></fieldset>
+              </>}
+            </div>
+          </section>
+          <div className="branding-actions">
+            <button className="button primary" type="button" disabled={saving || Boolean(uploading)} onClick={() => void saveBranding()}>{saving ? "Saving…" : "Save branding"}</button>
+          </div>
+        </div>
+        <aside className="branding-preview-panel">
+          <div className="eyebrow">LOCAL PREVIEW</div>
+          <h2>Check the resolved output</h2>
+          <p>This preview only resolves your local configuration. It does not call OpenRouter or ElevenLabs.</p>
+          <label>Sample video title<input value={previewTitle} maxLength={160} onChange={(e) => setPreviewTitle(e.target.value)} /></label>
+          <button className="button subtle full" type="button" onClick={() => void previewBranding()}>Preview branding</button>
+          {preview ? <div className="resolved-preview" aria-live="polite"><div className="preview-mark">{preview.logoAsset ? <img src={`/api/branding/assets/logo?asset=${encodeURIComponent(preview.logoAsset)}`} alt={`${preview.brandName} logo`} /> : <span aria-hidden="true">t.</span>}</div><strong>{preview.brandName}</strong><span>{preview.tagline}</span><h3>{preview.videoTitle}</h3><p>{preview.cta}</p><dl><dt>Intro</dt><dd>{preview.intro.enabled ? `${preview.intro.mode} · ${preview.intro.frames} frames` : "Off"}</dd><dt>Outro</dt><dd>{preview.outro.enabled ? `${preview.outro.mode} · ${preview.outro.frames} frames` : "Off"}</dd><dt>QR code</dt><dd>{preview.outro.qrEnabled ? "Configured" : "Off"}</dd></dl></div> : <p className="hint">Choose Preview branding to see the title, resolved timing and QR status.</p>}
+        </aside>
+      </div>
     </>
   );
 }

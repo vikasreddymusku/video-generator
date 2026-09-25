@@ -144,3 +144,50 @@ test("responsive navigation and upload validation on mobile", async ({
     fullPage: true,
   });
 });
+
+test("global branding settings preview locally and batch overrides are selectable", async ({
+  page,
+}) => {
+  await page.goto("/settings/branding");
+  await expect(
+    page.getByRole("heading", { name: "Branding", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Sample video title").fill("AWS Data Engineering");
+  await page.getByRole("button", { name: "Preview branding" }).click();
+  await expect(page.getByText("AWS Data Engineering", { exact: true })).toBeVisible();
+  await expect(page.getByText(/dynamic.*120 frames/i)).toBeVisible();
+  await page.getByLabel("Brand name").fill("Tinitiate AI Solutions");
+  await page.getByRole("button", { name: "Save branding" }).click();
+  await expect(page.getByRole("status")).toContainText("Global video branding saved");
+  await page.screenshot({
+    path: ".verification/branding-desktop.png",
+    fullPage: true,
+  });
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Video branding" }).click();
+  await expect(page.getByLabel("Brand name")).toHaveValue("Tinitiate AI Solutions");
+  await page.goto("/videos/new");
+  await page.getByRole("combobox", { name: "Intro", exact: true }).selectOption("none");
+  await page.getByRole("combobox", { name: "Outro", exact: true }).selectOption("uploaded");
+  await expect(page.getByRole("combobox", { name: "Intro", exact: true })).toHaveValue("none");
+  await expect(page.getByRole("combobox", { name: "Outro", exact: true })).toHaveValue("uploaded");
+});
+
+test("branding settings remain usable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/settings/branding");
+  await expect(
+    page.getByRole("heading", { name: "Branding", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Preview branding" }).click();
+  await expect(page.getByText(/dynamic.*120 frames/i)).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: ".verification/branding-mobile.png",
+    fullPage: true,
+  });
+});

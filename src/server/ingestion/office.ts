@@ -150,9 +150,12 @@ export async function officeSections(bytes: Buffer, type: "DOCX" | "PPTX") {
       const rel = relation.get(slideId.getAttribute("r:id"));
       if (!rel || rel.getAttribute("TargetMode") === "External")
         throw new ClientError("Invalid slide relationship.");
-      const slidePath = path.posix.normalize(
-        path.posix.join("ppt", rel.getAttribute("Target") ?? ""),
-      );
+      const target = rel.getAttribute("Target") ?? "";
+const slidePath = path.posix.normalize(
+  target.startsWith("/")
+    ? target.slice(1)
+    : path.posix.join("ppt", target),
+);
       if (!slidePath.startsWith("ppt/slides/"))
         throw new ClientError("Unsafe slide reference.");
       const slide = xml(files.get(slidePath));
@@ -177,11 +180,12 @@ export async function officeSections(bytes: Buffer, type: "DOCX" | "PPTX") {
             noteRel.getAttribute("TargetMode") === "External"
           )
             continue;
-          const notePath = path.posix.normalize(
-            path.posix.join(
-              path.posix.dirname(slidePath),
-              noteRel.getAttribute("Target") ?? "",
-            ),
+          const noteTarget = noteRel.getAttribute("Target") ?? "";
+const notePath = path.posix.normalize(
+  noteTarget.startsWith("/")
+    ? noteTarget.slice(1)
+    : path.posix.join(path.posix.dirname(slidePath), noteTarget),
+
           );
           if (!notePath.startsWith("ppt/notesSlides/"))
             throw new ClientError("Unsafe notes reference.");

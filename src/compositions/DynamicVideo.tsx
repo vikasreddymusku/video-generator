@@ -15,8 +15,10 @@ import type { FC } from "react";
 import { CodeScene } from "../scenes/CodeScene";
 import { DiagramScene } from "../scenes/DiagramScene";
 import { MetricsScene } from "../scenes/MetricsScene";
+import { BrandOutroScene } from "../scenes/BrandOutroScene";
 const scenes: Record<VideoScene["type"], FC<SceneProps>> = {
   "brand-intro": BrandIntroScene,
+  "brand-outro": BrandOutroScene,
   "hero-title": HeroTitleScene,
   "process-flow": ProcessFlowScene,
   "technology-stack": TechnologyStackScene,
@@ -27,7 +29,7 @@ const scenes: Record<VideoScene["type"], FC<SceneProps>> = {
   metrics: MetricsScene,
   cta: CtaScene,
 };
-export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix }) => (
+export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix, branding }) => (
   <AbsoluteFill
     style={{
       background: theme.background,
@@ -64,7 +66,7 @@ export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix }) => (
                   boxSizing: "border-box",
                 }}
               >
-                <Component scene={scene} theme={theme} plan={plan} />
+                <Component scene={scene} theme={theme} plan={plan} branding={branding} />
               </div>
               <SceneTransition style={scene.transition} theme={theme} />
             </div>
@@ -85,9 +87,7 @@ export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix }) => (
         </Sequence>
       );
     })}
-    {audio.voiceover && (
-      <Audio src={staticFile(audio.voiceover)} volume={() => mix.voiceVolume} />
-    )}
+    {audio.voiceover && <Sequence from={branding?.intro.frames ?? 0}><Audio src={staticFile(audio.voiceover)} volume={() => mix.voiceVolume} /></Sequence>}
     {audio.music && (
       <Audio
         src={staticFile(audio.music)}

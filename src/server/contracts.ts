@@ -1,3 +1,9 @@
+import type {
+  BrandingConfig,
+  BrandingOverride,
+  ResolvedBranding,
+} from "../automation/types";
+
 export const stages = [
   "PLANNING",
   "GENERATING_VOICE",
@@ -61,6 +67,8 @@ export interface Job {
   errorStage: string | null;
   errorMessage: string | null;
   attempt: number;
+  branding?: ResolvedBranding;
+  brandingOverride?: BrandingOverride;
 }
 export interface JobEvent {
   id: number;
@@ -90,4 +98,16 @@ export interface SettingsView extends Settings {
   output: string;
   timezone: string;
   offline: boolean;
+}
+export interface BrandingView {
+  brand: {
+    name: string;
+    tagline: string;
+    cta: string;
+    website: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  branding: BrandingConfig;
 }

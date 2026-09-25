@@ -58,6 +58,8 @@ export function engineAdapter(
             slug: `job-${job.id}`,
             durationMode: job.durationMode,
             durationSeconds: job.durationSeconds,
+            branding: job.branding,
+            brandingOverride: job.brandingOverride,
           },
           onStage: stage,
           onAudio: (duration) =>
@@ -136,6 +138,8 @@ export class JobWorker {
       }
       job.sourceType = source.sourceType;
       job.title = source.title;
+      if (job.branding)
+        job.branding = { ...job.branding, videoTitle: source.title };
       this.repo.save(job);
       const result = await this.engine(job, source, (stage) =>
         this.repo.stage(job.id, stage),

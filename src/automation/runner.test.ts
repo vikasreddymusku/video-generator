@@ -205,7 +205,12 @@ test("remote runner sends only narration to TTS and marks done only after succes
         },
         renderVideo: async (_root, directory, props) => {
           events.push("render");
-          assert.equal(props.plan.totalFrames, 900);
+          assert.equal(
+            props.plan.totalFrames,
+            f.plan.totalFrames + 9 * f.plan.fps,
+          );
+          assert.equal(props.branding?.intro.frames, 4 * f.plan.fps);
+          assert.equal(props.branding?.outro.frames, 5 * f.plan.fps);
           assert.ok(props.audio.voiceover);
           await mkdir(directory, { recursive: true });
           const output = path.join(directory, "final.mp4");
