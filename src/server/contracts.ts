@@ -24,7 +24,8 @@ export type SourceType =
   | "PDF"
   | "DOCX"
   | "PPTX"
-  | "WEBPAGE";
+  | "WEBPAGE"
+  | "VIDEO";
 export interface SourceSection {
   heading: string;
   text: string;
