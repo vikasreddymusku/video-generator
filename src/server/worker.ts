@@ -60,6 +60,7 @@ export function engineAdapter(
             durationSeconds: job.durationSeconds,
             branding: job.branding,
             brandingOverride: job.brandingOverride,
+            hybrid,
           },
           onStage: stage,
           onAudio: (duration) =>
@@ -141,9 +142,26 @@ export class JobWorker {
       if (job.branding)
         job.branding = { ...job.branding, videoTitle: source.title };
       this.repo.save(job);
+      const managedAsset = (name?: string) => {
+        if (!name) return undefined;
+        if (path.basename(name) !== name || !/^[A-Za-z0-9._-]+$/.test(name))
+          throw new Error("Managed hybrid asset reference is invalid.");
+        return path.join(sourceDirectory(this.root, job.id), name);
+      };
+      const hybrid =
+        job.visualSource || job.narrationSource
+          ? {
+              visualSource: job.visualSource ?? "AI",
+              narrationSource: job.narrationSource ?? "AI_SCRIPT",
+              userVideoFile: managedAsset(job.visualAssetName),
+              userNarrationAudioFile: managedAsset(job.narrationAssetName),
+              userNarrationScript: job.narrationScript,
+            }
+          : undefined;
       const result = await this.engine(job, source, (stage) =>
         this.repo.stage(job.id, stage),
       );
+
       this.repo.complete(job.id, result);
     } catch (e) {
       this.repo.fail(job.id, safeMessage(e));
