@@ -412,9 +412,13 @@ const normalizedTiming = {
             throw new Error(
               "Narrated rendering requires tts.enabled=true; use --preview for silent visuals.",
             );
-          const voiceoverText = (
-            await readFile(path.join(directory, "voiceover.txt"), "utf8")
-          ).replace(/\r\n/g, "\n");
+          const savedVoiceover = await readFile(
+            path.join(directory, "voiceover.txt"),
+            "utf8",
+          );
+          const voiceoverText = savedVoiceover.endsWith("\n")
+            ? savedVoiceover.slice(0, -1)
+            : savedVoiceover;
           if (voiceoverText !== plan.voiceover.text)
             throw new Error(
               "voiceover.txt changed after planning; refusing TTS.",
