@@ -549,6 +549,8 @@ function JobRow({ job, actions }: { job: Job; actions?: ReactNode }) {
                 ? date(job.scheduledAt)
                 : date(job.createdAt)}
           </span>
+          {job.visualSource && <span>Visual: {label(job.visualSource)}</span>}
+          {job.narrationSource && <span>Narration: {label(job.narrationSource)}</span>}
         </div>
         {job.errorMessage && (
           <p className="error-text">
@@ -1596,6 +1598,8 @@ function Detail({
         <span>Created {date(job.createdAt)}</span>
         {job.scheduledAt && <span>Scheduled {date(job.scheduledAt)}</span>}
         <span>{job.theme}</span>
+        {job.visualSource && <span>Visual: {label(job.visualSource)}</span>}
+        {job.narrationSource && <span>Narration: {label(job.narrationSource)}</span>}
         <span>Attempt {job.attempt}</span>
       </div>
       <div className="detail-actions">{actions(job)}</div>
