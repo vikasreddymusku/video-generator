@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { runAutomation } from "./main";
 import { createUserVideoPlan } from "./hybrid-inputs";
-import { save, hash, readJson } from "./io";
-import { videoPlanSchema, type VideoPlan } from "./types";
+import { hash } from "./io";
+import type { VideoPlan } from "./types";
 import type { SourceDocument } from "./source-loader";
 import type { Probe } from "./media";
 
