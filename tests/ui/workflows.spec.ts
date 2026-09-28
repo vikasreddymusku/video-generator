@@ -191,3 +191,35 @@ test("branding settings remain usable on mobile", async ({ page }) => {
     fullPage: true,
   });
 });
+
+
+test("hybrid input controls expose all six source combinations without invoking providers", async ({ page }) => {
+  await page.goto("/videos/new");
+  await page.getByRole("tab", { name: /Hybrid Inputs/ }).click();
+  await expect(page.getByRole("combobox", { name: "Visual source", exact: true })).toHaveValue("AI");
+  await expect(page.getByRole("combobox", { name: "Narration source", exact: true })).toHaveValue("AI_SCRIPT");
+
+  const visual = page.getByRole("combobox", { name: "Visual source", exact: true });
+  const narration = page.getByRole("combobox", { name: "Narration source", exact: true });
+  const cases = [
+    ["AI", "AI_SCRIPT"],
+    ["AI", "USER_SCRIPT"],
+    ["AI", "USER_AUDIO"],
+    ["USER_VIDEO", "AI_SCRIPT"],
+    ["USER_VIDEO", "USER_SCRIPT"],
+    ["USER_VIDEO", "USER_AUDIO"],
+  ] as const;
+
+  for (const [visualSource, narrationSource] of cases) {
+    await visual.selectOption(visualSource);
+    await narration.selectOption(narrationSource);
+    if (narrationSource === "USER_SCRIPT") {
+      await expect(page.getByLabel("Exact narration / voiceover script")).toBeVisible();
+    } else if (narrationSource === "USER_AUDIO") {
+      await expect(page.getByLabel("Narration audio")).toBeVisible();
+    }
+    if (visualSource === "USER_VIDEO") {
+      await expect(page.getByLabel("Existing video")).toBeVisible();
+    }
+  }
+});
