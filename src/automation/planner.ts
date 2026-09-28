@@ -62,6 +62,17 @@ export function validatePlan(input: PlannerInput, value: unknown) {
     );
   }
 
+  const expectsExternalNarration =
+    input.hybrid?.narrationSource === "USER_SCRIPT" ||
+    input.hybrid?.narrationSource === "USER_AUDIO";
+  if (plan.narrationExternal !== expectsExternalNarration) {
+    throw new Error(
+      expectsExternalNarration
+        ? "Planner must return an external-narration visual plan."
+        : "Planner returned an unexpected external-narration plan.",
+    );
+  }
+
   if (
     plan.slug !== meta.slug ||
     plan.title !== meta.title ||
