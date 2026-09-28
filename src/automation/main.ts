@@ -40,6 +40,9 @@ export async function runAutomation(
     generateVoiceover?: typeof generateVoiceover;
     renderVideo?: typeof renderVideo;
     validateVideo?: typeof validateVideo;
+    probe?: typeof probe;
+    audioDuration?: typeof audioDuration;
+    analyzeUserVideo?: typeof analyzeUserVideo;
     sourceDocument?: SourceDocument;
     jobOptions?: {
       slug: string;
@@ -171,9 +174,9 @@ export async function runAutomation(
           const videoFile = hybrid.userVideoFile!;
           const analysis =
             hybrid.narrationSource === "AI_SCRIPT"
-              ? await analyzeUserVideo(videoFile, config)
+              ? await (dependencies.analyzeUserVideo ?? analyzeUserVideo)(videoFile, config)
               : await (async () => {
-                  const video = await probe(videoFile);
+                  const video = await (dependencies.probe ?? probe)(videoFile);
                   const stream = video.streams.find((s) => s.codec_type === "video");
                   return {
                     durationSeconds: Number(video.format.duration),
@@ -362,7 +365,7 @@ const normalizedTiming = {
           | ReturnType<typeof assertNarration>
           | undefined;
         if (narrationSource === "USER_AUDIO") {
-          const duration = await audioDuration(hybrid!.userNarrationAudioFile!);
+          const duration = await (dependencies.audioDuration ?? audioDuration)(hybrid!.userNarrationAudioFile!);
           await save(path.join(directory, "narration-budget.json"), {
             source: "USER_AUDIO",
             duration,
@@ -407,7 +410,7 @@ const normalizedTiming = {
           voiceFile = hybrid!.userNarrationAudioFile!;
           audio = {
             file: voiceFile,
-            duration: await audioDuration(voiceFile),
+            duration: await (dependencies.audioDuration ?? audioDuration)(voiceFile),
             alignment: null,
             cached: true,
           };
