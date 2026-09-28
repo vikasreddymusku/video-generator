@@ -13,6 +13,23 @@ export type HybridJobInputs = {
   userVideoMimeType?: string;
 };
 
+export function resolveHybridCapabilities(inputs?: HybridJobInputs) {
+  const visualSource = inputs?.visualSource ?? "AI";
+  const narrationSource = inputs?.narrationSource ?? "AI_SCRIPT";
+  return {
+    visualSource,
+    narrationSource,
+    usesUserVideo: visualSource === "USER_VIDEO",
+    usesUserNarrationScript: narrationSource === "USER_SCRIPT",
+    usesUserNarrationAudio: narrationSource === "USER_AUDIO",
+    needsVideoAnalysis:
+      visualSource === "USER_VIDEO" &&
+      narrationSource === "AI_SCRIPT",
+    needsVisualPlanner: visualSource === "AI",
+    needsTts: narrationSource !== "USER_AUDIO",
+  } as const;
+}
+
 export function assertHybridInputs(inputs: HybridJobInputs) {
   if (inputs.visualSource === "USER_VIDEO" && !inputs.userVideoFile) {
     throw new Error("A user video is required when visual source is USER_VIDEO.");
