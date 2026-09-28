@@ -226,6 +226,33 @@ export async function runAutomation(
           path.join(directory, "voiceover.txt"),
           plan.voiceover.text ? plan.voiceover.text + "\n" : "",
         );
+        const runtimeHybrid = hybrid
+          ? {
+              visualSource: hybrid.visualSource,
+              narrationSource: hybrid.narrationSource,
+              ...(hybrid.userVideoFile
+                ? {
+                    userVideoAsset: await stageHybridAsset(
+                      root,
+                      plan.slug,
+                      hybrid.userVideoFile,
+                      "video",
+                    ),
+                  }
+                : {}),
+              ...(hybrid.narrationSource === "USER_AUDIO"
+                ? {
+                    userNarrationAudioAsset: await stageHybridAsset(
+                      root,
+                      plan.slug,
+                      hybrid.userNarrationAudioFile!,
+                      "narration",
+                    ),
+                  }
+                : {}),
+              userVideoVolume: 0.15,
+            }
+          : undefined;
         if (preview) {
           plan = applyBrandingTiming(plan, branding);
           await save(path.join(root, "src", "generated", "preview.json"), {
@@ -408,33 +435,6 @@ const normalizedTiming = {
               }),
         );
         plan = applyBrandingTiming(plan, branding);
-        const runtimeHybrid = hybrid
-          ? {
-              visualSource: hybrid.visualSource,
-              narrationSource: hybrid.narrationSource,
-              ...(hybrid.userVideoFile
-                ? {
-                    userVideoAsset: await stageHybridAsset(
-                      root,
-                      plan.slug,
-                      hybrid.userVideoFile,
-                      "video",
-                    ),
-                  }
-                : {}),
-              ...(hybrid.narrationSource === "USER_AUDIO"
-                ? {
-                    userNarrationAudioAsset: await stageHybridAsset(
-                      root,
-                      plan.slug,
-                      hybrid.userNarrationAudioFile!,
-                      "narration",
-                    ),
-                  }
-                : {}),
-              userVideoVolume: 0.15,
-            }
-          : undefined;
         await save(path.join(directory, "render-plan.json"), plan);
         const props = {
           plan,
