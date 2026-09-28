@@ -30,7 +30,7 @@ import {
   resolveBranding,
   stripBrandingTiming,
 } from "./branding";
-import type { BrandingOverride, ResolvedBranding } from "./types";
+import type { BrandingOverride, ResolvedBranding, VideoPlan } from "./types";
 
 export async function runAutomation(
   args = process.argv.slice(2),
@@ -169,7 +169,7 @@ export async function runAutomation(
           dependencies.planner ??
           (codexMode ? new CodexTestPlanner() : new OpenRouterPlanner());
         dependencies.onStage?.("PLANNING");
-        let plan;
+        let plan: VideoPlan;
         let plannerMetadata = planner.metadata;
         if (hybrid?.visualSource === "USER_VIDEO") {
           const videoFile = hybrid.userVideoFile!;
@@ -224,7 +224,7 @@ export async function runAutomation(
         if (hybrid?.narrationSource === "USER_AUDIO") {
           plan = clearExternalNarration(plan);
         }
-                branding = { ...branding, videoTitle: plan.title };
+        branding = { ...branding, videoTitle: plan.title };
         await save(path.join(directory, "metadata.json"), {
           ...content,
           ...plannerMetadata,
