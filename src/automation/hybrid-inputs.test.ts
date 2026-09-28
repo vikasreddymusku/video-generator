@@ -31,7 +31,7 @@ function content() {
     sourceHash: "source-hash",
     originalReference: "video.mp4",
     resolvedReference: "video.mp4",
-    sourceType: "VIDEO",
+    sourceType: "local",
     fetchedAt: new Date().toISOString(),
     sourceName: "video.mp4",
     raw: "# Hybrid Demo",
