@@ -16,6 +16,7 @@ import { CodeScene } from "../scenes/CodeScene";
 import { DiagramScene } from "../scenes/DiagramScene";
 import { MetricsScene } from "../scenes/MetricsScene";
 import { BrandOutroScene } from "../scenes/BrandOutroScene";
+import { UserVideoScene } from "../scenes/UserVideoScene";
 const scenes: Record<VideoScene["type"], FC<SceneProps>> = {
   "brand-intro": BrandIntroScene,
   "brand-outro": BrandOutroScene,
@@ -29,7 +30,7 @@ const scenes: Record<VideoScene["type"], FC<SceneProps>> = {
   metrics: MetricsScene,
   cta: CtaScene,
 };
-export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix, branding }) => (
+export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix, branding, hybrid }) => (
   <AbsoluteFill
     style={{
       background: theme.background,
@@ -38,7 +39,30 @@ export const DynamicVideo: FC<VideoProps> = ({ plan, theme, audio, mix, branding
       overflow: "hidden",
     }}
   >
+    {hybrid?.visualSource === "USER_VIDEO" && hybrid.userVideoAsset ? (
+      <Sequence
+        from={branding?.intro.frames ?? 0}
+        durationInFrames={Math.max(
+          1,
+          plan.totalFrames -
+            (branding?.intro.frames ?? 0) -
+            (branding?.outro.frames ?? 0),
+        )}
+      >
+        <UserVideoScene
+          asset={hybrid.userVideoAsset}
+          volume={hybrid.userVideoVolume ?? 0.15}
+        />
+      </Sequence>
+    ) : null}
     {plan.scenes.map((scene) => {
+      if (
+        hybrid?.visualSource === "USER_VIDEO" &&
+        scene.type !== "brand-intro" &&
+        scene.type !== "brand-outro"
+      ) {
+        return null;
+      }
       const Component = scenes[scene.type];
       return (
         <Sequence
