@@ -13,7 +13,7 @@ export const extensions: Record<string, SourceType> = {
   ".docx": "DOCX",
   ".pptx": "PPTX",
 };
-const mimeTypes: Record<SourceType, string[]> = {
+const mimeTypes: Record<Exclude<SourceType, "VIDEO">, string[]> = {
   MARKDOWN: ["text/markdown", "text/plain", "text/x-markdown"],
   TEXT: ["text/plain"],
   PDF: ["application/pdf"],
