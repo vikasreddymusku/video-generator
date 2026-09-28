@@ -224,6 +224,7 @@ export async function runAutomation(
         if (hybrid?.narrationSource === "USER_AUDIO") {
           plan = clearExternalNarration(plan);
         }
+        await save(path.join(directory, "video-plan.json"), plan);
         branding = { ...branding, videoTitle: plan.title };
         await save(path.join(directory, "metadata.json"), {
           ...content,
