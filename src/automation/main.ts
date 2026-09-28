@@ -261,6 +261,7 @@ export async function runAutomation(
             audio: await prepareAssets(root, plan.slug),
             mix: config.audio,
             branding,
+            hybrid: runtimeHybrid,
           });
           await log("Visual preview prepared without TTS.");
           console.log(
