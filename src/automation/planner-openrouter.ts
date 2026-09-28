@@ -69,6 +69,9 @@ export class OpenRouterPlanner implements Planner {
     this.metadata = undefined;
 
     const mode = input.content.metadata.voiceover_mode;
+    const externalNarration =
+      input.hybrid?.narrationSource === "USER_SCRIPT" ||
+      input.hybrid?.narrationSource === "USER_AUDIO";
     const durationMode = input.content.metadata.duration_mode;
 
     /*
@@ -79,6 +82,7 @@ export class OpenRouterPlanner implements Planner {
      * accommodating the approved supplied narration.
      */
     if (
+      !externalNarration &&
       mode === "supplied" &&
       durationMode === "fixed" &&
       input.content.metadata.duration_seconds !== undefined
@@ -121,12 +125,14 @@ export class OpenRouterPlanner implements Planner {
           productionPlanSchema.parse(await readJson(input.planFile)),
         );
 
-        assertNarration(
-          plan.voiceover.text,
-          plan.durationSeconds,
-          input.config,
-          mode,
-        );
+        if (!externalNarration) {
+          assertNarration(
+            plan.voiceover.text,
+            plan.durationSeconds,
+            input.config,
+            mode,
+          );
+        }
 
         if (cache.metadata.planHash === hash(JSON.stringify(plan))) {
           this.metadata = cache.metadata;
@@ -276,7 +282,7 @@ export class OpenRouterPlanner implements Planner {
         plan.compositionId === "DynamicVideo" ||
         plan.scenes.some(
           (scene) =>
-            !scene.voiceover.trim() ||
+            (!externalNarration && !scene.voiceover.trim()) ||
             scene.durationInFrames < plan.fps,
         )
       ) {
@@ -297,12 +303,14 @@ export class OpenRouterPlanner implements Planner {
       }
 
       try {
-        assertNarration(
-          plan.voiceover.text,
-          plan.durationSeconds,
-          input.config,
-          mode,
-        );
+        if (!externalNarration) {
+          assertNarration(
+            plan.voiceover.text,
+            plan.durationSeconds,
+            input.config,
+            mode,
+          );
+        }
       } catch (error) {
         const isBudgetError =
           error instanceof NarrationBudgetError;
