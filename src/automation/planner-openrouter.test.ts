@@ -334,3 +334,38 @@ test("supplied narration over budget fails before any request; auto and hybrid m
     await f.cleanup();
   }
 });
+
+
+test("external narration planning never sends the user script and returns a visual-only plan", async () => {
+  const f = await fixture();
+  const externalPlan = {
+    ...f.plan,
+    narrationExternal: true,
+    fullVoiceover: "",
+    voiceover: { mode: "continuous" as const, text: "" },
+    scenes: f.plan.scenes.map((scene) => ({ ...scene, voiceover: "" })),
+  };
+  try {
+    const planner = new OpenRouterPlanner({
+      apiKey: () => "test-openrouter-secret",
+      fetch: async (_url, options) => {
+        const body = JSON.stringify(options?.body);
+        assert.ok(!body.includes("Secret supplied script"));
+        const messages = JSON.parse(String(options?.body)).messages;
+        assert.ok(!JSON.stringify(messages).includes("Secret supplied script"));
+        return completion(externalPlan);
+      },
+    });
+    const result = await planner.createVideoPlan({
+      ...f.input,
+      hybrid: {
+        visualSource: "AI",
+        narrationSource: "USER_SCRIPT",
+      },
+    });
+    assert.equal(result.narrationExternal, true);
+    assert.equal(result.voiceover.text, "");
+  } finally {
+    await f.cleanup();
+  }
+});
