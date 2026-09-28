@@ -10,7 +10,7 @@ export const PLANNER_PROMPT_VERSION = "3.1.0";
 
 export const productionPlanSchema =
   videoPlanSchema.safeExtend({
-    fullVoiceover: z.string().min(1),
+    fullVoiceover: z.string(),
   });
 
 export function plannerJsonSchema() {
@@ -283,8 +283,10 @@ Use one dominant communication goal per scene.
 
 End with a readable CTA containing the exact configured contact data.
 
-fullVoiceover and voiceover.text must equal all scene voiceovers joined
-with one space in scene order.
+For externally supplied narration, narrationExternal must be true and
+voiceover.text/fullVoiceover may be empty; scene voiceovers may also be empty.
+For AI narration, narrationExternal must be false and fullVoiceover and
+voiceover.text must equal all scene voiceovers joined with one space in scene order.
 
 voiceover.mode is always "continuous".
 `.trim();
@@ -377,15 +379,26 @@ voiceover.mode is always "continuous".
         },
 
         narrationMode:
-          m.voiceover_mode,
+          input.hybrid?.narrationSource === "USER_SCRIPT" ||
+          input.hybrid?.narrationSource === "USER_AUDIO"
+            ? "external"
+            : m.voiceover_mode,
 
-        suppliedNarration:
-          input.content.suppliedVoiceover,
+        narrationExternal:
+          input.hybrid?.narrationSource === "USER_SCRIPT" ||
+          input.hybrid?.narrationSource === "USER_AUDIO",
+
+        ...(input.hybrid?.narrationSource !== "USER_SCRIPT" &&
+        input.hybrid?.narrationSource !== "USER_AUDIO"
+          ? { suppliedNarration: input.content.suppliedVoiceover }
+          : {}),
 
         narrationSettings:
           input.config.narration,
 
-        narrationBudget: budget
+        narrationBudget: budget &&
+          !input.hybrid?.narrationSource &&
+          !input.hybrid?.visualSource
           ? {
               mode: "fixed",
               availableSeconds:
