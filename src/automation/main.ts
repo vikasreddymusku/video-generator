@@ -224,7 +224,11 @@ export async function runAutomation(
         });
         await save(
           path.join(directory, "voiceover.txt"),
-          plan.voiceover.text ? plan.voiceover.text + "\n" : "",
+          hybrid?.narrationSource === "USER_SCRIPT"
+            ? plan.voiceover.text
+            : plan.voiceover.text
+              ? plan.voiceover.text + "\n"
+              : "",
         );
         const runtimeHybrid = hybrid
           ? {
