@@ -108,6 +108,19 @@ function scriptSlices(script: string, count: number, weights: number[]) {
   return slices;
 }
 
+export function clearExternalNarration(plan: VideoPlan): VideoPlan {
+  return {
+    ...plan,
+    narrationExternal: true,
+    voiceover: { mode: "continuous", text: "" },
+    fullVoiceover: "",
+    scenes: plan.scenes.map((scene) => ({
+      ...scene,
+      voiceover: "",
+    })),
+  };
+}
+
 export function applyUserNarrationScript(
   plan: VideoPlan,
   script: string,
