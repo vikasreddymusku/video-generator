@@ -1,5 +1,5 @@
 import type { ContentInput } from "./load-content";
-import type { AutomationConfig, ThemeConfig, VideoPlan } from "./types";
+import type { AutomationConfig, ThemeConfig, VideoPlan, NarrationSource, VisualSource } from "./types";
 import { videoPlanSchema } from "./types";
 import { readJson } from "./io";
 export type PlannerInput = {
@@ -8,6 +8,10 @@ export type PlannerInput = {
   themeId: string;
   theme: ThemeConfig;
   planFile: string;
+  hybrid?: {
+    visualSource?: VisualSource;
+    narrationSource?: NarrationSource;
+  };
 };
 export interface Planner {
   createVideoPlan(input: PlannerInput): Promise<VideoPlan>;
@@ -83,6 +87,7 @@ export function validatePlan(input: PlannerInput, value: unknown) {
   }
 
   if (
+    !plan.narrationExternal &&
     input.content.metadata.voiceover_mode === "supplied" &&
     plan.voiceover.text !== input.content.suppliedVoiceover
   ) {
