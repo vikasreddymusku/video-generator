@@ -396,33 +396,39 @@ voiceover.mode is always "continuous".
         narrationSettings:
           input.config.narration,
 
-        narrationBudget: budget &&
-          input.hybrid?.narrationSource !== "USER_SCRIPT" &&
-          input.hybrid?.narrationSource !== "USER_AUDIO"
-          ? {
-              mode: "fixed",
-              availableSeconds:
-                budget.availableSeconds,
-              targetWords:
-                budget.targetWords,
-              wordsPerMinute:
-                input.config.narration
-                  .wordsPerMinute,
-            }
-          : {
-              mode: "auto",
-              wordsPerMinute:
-                input.config.narration
-                  .wordsPerMinute,
-              pauseSecondsPerMinute:
-                input.config.narration
-                  .pauseSecondsPerMinute,
-              endingBufferSeconds:
-                input.config.narration
-                  .endingBufferSeconds,
-              rule:
-                "Choose duration and narration together so narration fits naturally.",
-            },
+        narrationBudget:
+          input.hybrid?.narrationSource === "USER_SCRIPT" ||
+          input.hybrid?.narrationSource === "USER_AUDIO"
+            ? {
+                mode: "external",
+                rule:
+                  "Do not generate, rewrite, summarize, or include narration text. Visual planning only; external narration is authoritative and will be injected after planning.",
+              }
+            : budget
+              ? {
+                  mode: "fixed",
+                  availableSeconds:
+                    budget.availableSeconds,
+                  targetWords:
+                    budget.targetWords,
+                  wordsPerMinute:
+                    input.config.narration
+                      .wordsPerMinute,
+                }
+              : {
+                  mode: "auto",
+                  wordsPerMinute:
+                    input.config.narration
+                      .wordsPerMinute,
+                  pauseSecondsPerMinute:
+                    input.config.narration
+                      .pauseSecondsPerMinute,
+                  endingBufferSeconds:
+                    input.config.narration
+                      .endingBufferSeconds,
+                  rule:
+                    "Choose duration and narration together so narration fits naturally.",
+                },
 
         brandContact: {
           brand: m.brand,
