@@ -414,9 +414,7 @@ export function createApp(
           const ext = path.extname(videoFile.originalname).toLowerCase();
           if (![".mp4", ".webm", ".mov"].includes(ext))
             throw new ClientError("Supported user videos: .mp4, .webm and .mov.");
-          if (!videoFile.size || !(await probe(videoFile.path ?? "").catch(() => null))) {
-            /* memory uploads do not have a path; readability is checked below. */
-          }
+          if (!videoFile.size) throw new ClientError("The uploaded video cannot be empty.");
           const pending = path.join(directory, "video" + ext);
           await writeFile(pending, videoFile.buffer, { flag: "wx" });
           const videoProbe = await probe(pending);
