@@ -269,7 +269,10 @@ export async function runAutomation(
           );
           continue;
         }
-        const voiceFile = path.join(directory, "audio", "voiceover.mp3");
+        let voiceFile =
+          hybrid?.narrationSource === "USER_AUDIO"
+            ? hybrid.userNarrationAudioFile!
+            : path.join(directory, "audio", "voiceover.mp3");
         if (validateOnly) {
           const timing = videoPlanSchema.parse(
             await readJson(path.join(directory, "render-plan.json")),
@@ -351,6 +354,9 @@ const normalizedTiming = {
         }
         const narrationSource =
           hybrid?.narrationSource ?? "AI_SCRIPT";
+        let narrationBudgetSummary:
+          | ReturnType<typeof assertNarration>
+          | undefined;
         if (narrationSource === "USER_AUDIO") {
           const duration = await audioDuration(hybrid!.userNarrationAudioFile!);
           await save(path.join(directory, "narration-budget.json"), {
@@ -366,23 +372,27 @@ const normalizedTiming = {
             content.metadata.duration_mode === "fixed" ||
             narrationSource === "AI_SCRIPT"
           ) {
-            const narration = assertNarration(
+            narrationBudgetSummary = assertNarration(
               plan.voiceover.text,
               plan.durationSeconds,
               config,
               narrationMode,
             );
-            await save(path.join(directory, "narration-budget.json"), narration);
+            await save(
+              path.join(directory, "narration-budget.json"),
+              narrationBudgetSummary,
+            );
           }
         }
         dependencies.onStage?.("NARRATION_PREPARED");
         if (planOnly) {
           console.log(
-            `Plan ready: ${plan.slug}; ${narration.wordCount} narration words; estimated ${narration.estimatedSeconds.toFixed(2)}s including pauses. No TTS or render requested.`,
+            narrationSource === "USER_AUDIO"
+              ? `Plan ready: ${plan.slug}; user narration audio accepted. No TTS or render requested.`
+              : `Plan ready: ${plan.slug}; ${narrationBudgetSummary?.wordCount ?? plan.voiceover.text.trim().split(/\\s+/).filter(Boolean).length} narration words. No TTS or render requested.`,
           );
           continue;
         }
-        let voiceFile: string;
         let audio: {
           file: string;
           duration: number;
