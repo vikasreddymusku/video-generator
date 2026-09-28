@@ -335,7 +335,7 @@ export function createApp(
     limits: {
       fileSize: 100 * 1024 * 1024,
       files: 3,
-      fields: 3,
+      fields: 5,
       fieldSize: 512 * 1024,
       parts: 7,
     },
