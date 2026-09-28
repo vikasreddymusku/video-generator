@@ -101,8 +101,16 @@ export async function analyzeUserVideo(
   );
 
   if (!response.ok) {
-    const detail = (await response.text()).slice(0, 1200);
-    throw new Error("OpenRouter video analysis failed (HTTP " + response.status + "): " + detail);
+    const detail = (await response.text())
+      .slice(0, 1200)
+      .split(key)
+      .join("[REDACTED]");
+    throw new Error(
+      "OpenRouter video analysis failed (HTTP " +
+        response.status +
+        "): " +
+        detail,
+    );
   }
 
   const body = (await response.json()) as {
