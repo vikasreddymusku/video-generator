@@ -6,7 +6,7 @@ import {
 } from "./types";
 import { narrationBudget } from "./narration";
 
-export const PLANNER_PROMPT_VERSION = "3.1.0";
+export const PLANNER_PROMPT_VERSION = "3.2.0";
 
 export const productionPlanSchema =
   videoPlanSchema.safeExtend({
