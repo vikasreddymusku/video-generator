@@ -482,6 +482,19 @@ export type VideoProps = {
   audio: AudioAssets;
   mix: AutomationConfig["audio"];
   branding?: ResolvedBranding;
+  hybrid?: HybridInputs;
+};
+
+export type VisualSource = "AI" | "USER_VIDEO";
+export type NarrationSource = "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+
+export type HybridInputs = {
+  visualSource?: VisualSource;
+  narrationSource?: NarrationSource;
+  userVideoFile?: string;
+  userNarrationAudioFile?: string;
+  userNarrationScript?: string;
+  userVideoDurationSeconds?: number;
 };
 
 export type ResolvedBranding = {
