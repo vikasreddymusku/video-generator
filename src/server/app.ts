@@ -4,7 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { z } from "zod";
-import { loadMetadataContext } from "../automation/resolve-metadata";
+import { humanizeFilename, loadMetadataContext } from "../automation/resolve-metadata";
 import { readJson, save } from "../automation/io";
 import {
   brandingConfigSchema,
@@ -326,6 +326,155 @@ export function createApp(
         for (const id of ids)
           await rm(sourceDirectory(root, id), { recursive: true, force: true });
         throw e;
+      }
+    },
+  );
+  const hybridUpload = multer({
+    storage: multer.memoryStorage(),
+    preservePath: true,
+    limits: {
+      fileSize: 100 * 1024 * 1024,
+      files: 3,
+      fields: 3,
+      fieldSize: 512 * 1024,
+      parts: 7,
+    },
+  });
+  let hybridUploading = false;
+  app.post(
+    "/api/jobs/hybrid",
+    (req, res, next) => {
+      if (hybridUploading)
+        return res.status(429).json({
+          error: "Another hybrid upload is being processed. Try again shortly.",
+        });
+      hybridUploading = true;
+      res.on("finish", () => { hybridUploading = false; });
+      res.on("close", () => { hybridUploading = false; });
+      next();
+    },
+    hybridUpload.fields([
+      { name: "source", maxCount: 1 },
+      { name: "video", maxCount: 1 },
+      { name: "audio", maxCount: 1 },
+    ]),
+    async (req, res) => {
+      const input = z
+        .object({
+          options: z.unknown(),
+          visualSource: z.enum(["AI", "USER_VIDEO"]),
+          narrationSource: z.enum(["AI_SCRIPT", "USER_SCRIPT", "USER_AUDIO"]),
+          script: z.string().max(512 * 1024).optional(),
+          sourceUrl: z.string().max(2048).optional(),
+        })
+        .strict()
+        .parse(req.body);
+      const baseOptions = options(input.options);
+      const files = req.files as Record<string, Express.Multer.File[]>;
+      const sourceFile = files?.source?.[0];
+      const videoFile = files?.video?.[0];
+      const audioFile = files?.audio?.[0];
+      if (input.visualSource === "USER_VIDEO" && !videoFile)
+        throw new ClientError("Choose a user video.");
+      if (input.visualSource === "AI" && !sourceFile && !input.sourceUrl)
+        throw new ClientError("Choose a source document or source URL.");
+      if (sourceFile && input.sourceUrl)
+        throw new ClientError("Choose either a source document or source URL, not both.");
+      if (input.narrationSource === "USER_SCRIPT" && !input.script?.trim())
+        throw new ClientError("Narration script cannot be empty.");
+      if (input.narrationSource === "USER_AUDIO" && !audioFile)
+        throw new ClientError("Choose a narration audio file.");
+      if (input.narrationSource !== "USER_AUDIO" && audioFile)
+        throw new ClientError("Narration audio is only valid when narration source is USER_AUDIO.");
+      const id = randomUUID();
+      const directory = sourceDirectory(root, id);
+      try {
+        await mkdir(directory, { recursive: true });
+        let normalized: import("./contracts").NormalizedSource | undefined;
+        let sourceReference = "";
+        let sourceOriginalName = "";
+        let sourceMimeType = "";
+        let title = "";
+        if (sourceFile) {
+          validateUpload(sourceFile.originalname, sourceFile.buffer);
+          const destination = path.join(directory, "source" + path.extname(sourceFile.originalname).toLowerCase());
+          await writeFile(destination, sourceFile.buffer, { flag: "wx" });
+          normalized = await ingestLocal(destination, sourceFile.originalname, root, sourceFile.buffer);
+          sourceReference = sourceFile.originalname;
+          sourceOriginalName = sourceFile.originalname;
+          sourceMimeType = sourceFile.mimetype;
+          title = normalized.title;
+        } else if (input.sourceUrl) {
+          const url = validateUrl(input.sourceUrl);
+          sourceReference = url.href;
+          sourceOriginalName = decodeURIComponent(url.pathname.split("/").pop() || url.hostname);
+          title = humanizeFilename(sourceOriginalName);
+        }
+        if (videoFile) {
+          const ext = path.extname(videoFile.originalname).toLowerCase();
+          if (![".mp4", ".webm", ".mov"].includes(ext))
+            throw new ClientError("Supported user videos: .mp4, .webm and .mov.");
+          if (!videoFile.size || !(await probe(videoFile.path ?? "").catch(() => null))) {
+            /* memory uploads do not have a path; readability is checked below. */
+          }
+          const pending = path.join(directory, "video" + ext);
+          await writeFile(pending, videoFile.buffer, { flag: "wx" });
+          const videoProbe = await probe(pending);
+          if (!videoProbe.streams.some((stream) => stream.codec_type === "video"))
+            throw new ClientError("The uploaded video could not be read.");
+          if (!title) title = humanizeFilename(videoFile.originalname);
+          if (!sourceOriginalName) sourceOriginalName = videoFile.originalname;
+          if (!sourceReference) sourceReference = videoFile.originalname;
+          if (!sourceMimeType) sourceMimeType = videoFile.mimetype;
+        }
+        if (audioFile) {
+          const ext = path.extname(audioFile.originalname).toLowerCase();
+          if (![".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"].includes(ext))
+            throw new ClientError("Supported narration audio: .mp3, .wav, .m4a, .aac, .ogg and .webm.");
+          const pending = path.join(directory, "narration" + ext);
+          await writeFile(pending, audioFile.buffer, { flag: "wx" });
+          const audioProbe = await probe(pending);
+          if (!audioProbe.streams.some((stream) => stream.codec_type === "audio"))
+            throw new ClientError("The uploaded narration audio could not be read.");
+        }
+        if (!normalized) {
+          const reference = sourceReference || videoFile!.originalname;
+          normalized = {
+            sourceType: "VIDEO",
+            sourceReference: reference,
+            originalName: sourceOriginalName || reference,
+            title,
+            content: "# " + title,
+            sections: [{ heading: title, text: "# " + title }],
+            provenance: {
+              reference,
+              extractedAt: new Date().toISOString(),
+              assets: [],
+              warnings: [],
+            },
+          };
+        }
+        await save(path.join(directory, "normalized.json"), normalized);
+        const videoName = videoFile ? "video" + path.extname(videoFile.originalname).toLowerCase() : undefined;
+        const audioName = audioFile ? "narration" + path.extname(audioFile.originalname).toLowerCase() : undefined;
+        const job = {
+          ...withBranding(baseOptions, title),
+          sourceType: normalized.sourceType,
+          sourceLocationType: input.sourceUrl ? "REMOTE" : "LOCAL",
+          sourceReference,
+          sourceOriginalName,
+          sourceMimeType,
+          title,
+          visualSource: input.visualSource,
+          narrationSource: input.narrationSource,
+          visualAssetName: videoName,
+          narrationAssetName: audioName,
+          narrationScript: input.narrationSource === "USER_SCRIPT" ? input.script : undefined,
+        };
+        res.status(201).json({ jobs: repo.createBatch([job], [id]) });
+      } catch (error) {
+        await rm(directory, { recursive: true, force: true });
+        throw error;
       }
     },
   );
