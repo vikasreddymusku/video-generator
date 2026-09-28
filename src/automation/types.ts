@@ -312,9 +312,12 @@ export const videoPlanSchema = z
     height: positive.int(),
     totalFrames: positive.int(),
     theme: text,
-    voiceover: z.object({ mode: z.literal("continuous"), text }),
+    voiceover: z.object({ mode: z.literal("continuous"), text: z.string() }),
+    // True only when narration is supplied externally and therefore is not required
+    // to be generated or concatenated by the visual planner.
+    narrationExternal: z.boolean().default(false),
     // Optional only for compatibility with already-rendered Phase 1 plans.
-    fullVoiceover: text.optional(),
+    fullVoiceover: z.string().optional(),
     contact: z.object({
       cta: text,
       website: text,
@@ -333,6 +336,11 @@ export const videoPlanSchema = z
       ctx.addIssue({
         code: "custom",
         message: "fullVoiceover must equal voiceover.text",
+      });
+    if (!plan.narrationExternal && !plan.voiceover.text.trim())
+      ctx.addIssue({
+        code: "custom",
+        message: "AI-generated narration cannot be empty",
       });
     let end = 0;
     const ids = new Set<string>();
@@ -449,6 +457,7 @@ if (scene.diagram) {
           "Scene frames must equal durationSeconds * fps and totalFrames",
       });
     if (
+      !plan.narrationExternal &&
       plan.scenes
         .map((s) => s.voiceover)
         .filter(Boolean)
