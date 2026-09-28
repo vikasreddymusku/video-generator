@@ -506,6 +506,10 @@ export type HybridInputs = {
   userNarrationAudioFile?: string;
   userNarrationScript?: string;
   userVideoDurationSeconds?: number;
+  // Runtime-only public asset references; never absolute server paths.
+  userVideoAsset?: string;
+  userNarrationAudioAsset?: string;
+  userVideoVolume?: number;
 };
 
 export type ResolvedBranding = {
