@@ -752,6 +752,13 @@ function Create({
     [urls, setUrls] = useState<string[]>([]),
     [draft, setDraft] = useState(""),
     [files, setFiles] = useState<File[]>([]),
+    [hybridVisualSource, setHybridVisualSource] = useState<"AI" | "USER_VIDEO">("AI"),
+    [hybridNarrationSource, setHybridNarrationSource] = useState<"AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO">("AI_SCRIPT"),
+    [hybridSourceFile, setHybridSourceFile] = useState<File>(),
+    [hybridSourceUrl, setHybridSourceUrl] = useState(""),
+    [hybridVideoFile, setHybridVideoFile] = useState<File>(),
+    [hybridAudioFile, setHybridAudioFile] = useState<File>(),
+    [hybridScript, setHybridScript] = useState(""),
     [theme, setTheme] = useState(settings.theme),
     [timing, setTiming] = useState("now"),
     [schedule, setSchedule] = useState(""),
@@ -796,9 +803,73 @@ function Create({
     /\.(md|txt|pdf|docx|pptx)$/i.test(f.name) &&
     f.size > 0 &&
     f.size <= 20 * 1024 * 1024;
+  const validHybridVideo = (f?: File) =>
+    Boolean(f && /\.(mp4|webm|mov)$/i.test(f.name) && f.size > 0 && f.size <= 100 * 1024 * 1024);
+  const validHybridAudio = (f?: File) =>
+    Boolean(f && /\.(mp3|wav|m4a|aac|ogg|webm)$/i.test(f.name) && f.size > 0 && f.size <= 100 * 1024 * 1024);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (mode === "hybrid") {
+      if (hybridVisualSource === "AI" && !hybridSourceFile && !hybridSourceUrl.trim()) {
+        setError("Add a source document or HTTPS source URL for AI visuals.");
+        return;
+      }
+      if (hybridSourceFile && hybridSourceUrl.trim()) {
+        setError("Choose either a source document or source URL, not both.");
+        return;
+      }
+      if (hybridVisualSource === "USER_VIDEO" && !validHybridVideo(hybridVideoFile)) {
+        setError("Add a valid MP4, WebM or MOV user video.");
+        return;
+      }
+      if (hybridNarrationSource === "USER_SCRIPT" && !hybridScript.trim()) {
+        setError("Narration script cannot be empty.");
+        return;
+      }
+      if (hybridNarrationSource === "USER_AUDIO" && !validHybridAudio(hybridAudioFile)) {
+        setError("Add a valid narration audio file.");
+        return;
+      }
+      setBusy(true);
+      try {
+        const options = {
+          theme,
+          durationMode,
+          ...(durationMode === "fixed" ? { durationSeconds: seconds } : {}),
+          ...(introBranding !== "inherit" || outroBranding !== "inherit"
+            ? {
+                brandingOverride: {
+                  ...(introBranding !== "inherit" ? { intro: { mode: introBranding } } : {}),
+                  ...(outroBranding !== "inherit" ? { outro: { mode: outroBranding } } : {}),
+                },
+              }
+            : {}),
+          scheduledAt: timing === "schedule" ? new Date(schedule).toISOString() : null,
+        };
+        const form = new FormData();
+        form.append("options", JSON.stringify(options));
+        form.append("visualSource", hybridVisualSource);
+        form.append("narrationSource", hybridNarrationSource);
+        if (hybridScript) form.append("script", hybridScript);
+        if (hybridSourceUrl.trim()) form.append("sourceUrl", hybridSourceUrl.trim());
+        if (hybridSourceFile) form.append("source", hybridSourceFile);
+        if (hybridVideoFile) form.append("video", hybridVideoFile);
+        if (hybridAudioFile) form.append("audio", hybridAudioFile);
+        const result = await api<{ jobs: Job[] }>("/jobs/hybrid", {
+          method: "POST",
+          body: form,
+        });
+        setCreated(result.jobs);
+        notify("Hybrid video job created.");
+        await refresh();
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (draft.trim()) {
       setError(
         "Add the URLs in the text box to your source list before creating jobs.",
@@ -919,8 +990,64 @@ function Create({
               >
                 ↑ Upload Files {files.length > 0 && `(${files.length})`}
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "hybrid"}
+                onClick={() => setMode("hybrid")}
+              >
+                ◈ Hybrid Inputs
+              </button>
             </div>
-            {mode === "urls" ? (
+            {mode === "hybrid" ? (
+              <div className="source-mode">
+                <div className="fields">
+                  <label>
+                    Visual source
+                    <select value={hybridVisualSource} onChange={(e) => setHybridVisualSource(e.target.value as "AI" | "USER_VIDEO")}>
+                      <option value="AI">AI-generated visuals</option>
+                      <option value="USER_VIDEO">Use my existing video</option>
+                    </select>
+                  </label>
+                  <label>
+                    Narration source
+                    <select value={hybridNarrationSource} onChange={(e) => setHybridNarrationSource(e.target.value as "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO")}>
+                      <option value="AI_SCRIPT">AI-generated narration</option>
+                      <option value="USER_SCRIPT">My narration script</option>
+                      <option value="USER_AUDIO">My narration audio</option>
+                    </select>
+                  </label>
+                </div>
+                {hybridVisualSource === "AI" && (
+                  <div className="fields">
+                    <label className="full-field">Source URL (optional if uploading a source)
+                      <input value={hybridSourceUrl} onChange={(e) => setHybridSourceUrl(e.target.value)} placeholder="https://..." />
+                    </label>
+                    <label className="full-field">Source document
+                      <input type="file" accept=".md,.txt,.pdf,.docx,.pptx" onChange={(e) => setHybridSourceFile(e.target.files?.[0])} />
+                    </label>
+                  </div>
+                )}
+                {hybridVisualSource === "USER_VIDEO" && (
+                  <label className="full-field">Existing video
+                    <input type="file" accept=".mp4,.webm,.mov" onChange={(e) => setHybridVideoFile(e.target.files?.[0])} />
+                  </label>
+                )}
+                {hybridNarrationSource === "USER_SCRIPT" && (
+                  <label className="full-field">Exact narration / voiceover script
+                    <textarea rows={9} value={hybridScript} onChange={(e) => setHybridScript(e.target.value)} placeholder="Paste the exact script ElevenLabs should speak." />
+                  </label>
+                )}
+                {hybridNarrationSource === "USER_AUDIO" && (
+                  <label className="full-field">Narration audio
+                    <input type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.webm" onChange={(e) => setHybridAudioFile(e.target.files?.[0])} />
+                  </label>
+                )}
+                <p className="hint">
+                  Supplied video, script and audio are authoritative. AI only generates missing components.
+                </p>
+              </div>
+            ) : mode === "urls" ? (
               <div className="source-mode">
                 <label htmlFor="urls">Paste one or more HTTPS URLs</label>
                 <textarea
@@ -1172,14 +1299,14 @@ function Create({
         <aside className="create-summary">
           <div className="eyebrow">YOUR PRODUCTION</div>
           <h2>
-            {urls.length + files.length}{" "}
-            <span>video{urls.length + files.length !== 1 ? "s" : ""}</span>
+            {mode === "hybrid" ? 1 : urls.length + files.length}{" "}
+            <span>video{(mode === "hybrid" ? 1 : urls.length + files.length) !== 1 ? "s" : ""}</span>
           </h2>
           <dl>
-            <dt>Web sources</dt>
-            <dd>{urls.length}</dd>
-            <dt>Uploaded files</dt>
-            <dd>{files.length}</dd>
+            <dt>Visual source</dt>
+            <dd>{mode === "hybrid" ? (hybridVisualSource === "USER_VIDEO" ? "User video" : "AI") : "Document / URL"}</dd>
+            <dt>Narration</dt>
+            <dd>{mode === "hybrid" ? label(hybridNarrationSource) : "AI"}</dd>
             <dt>Duration</dt>
             <dd>
               {durationMode === "auto" ? "Automatic" : `${seconds} seconds`}
