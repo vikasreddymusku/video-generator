@@ -11,6 +11,7 @@ import { audioDuration, probe } from "./media";
 import {
   alignExternalAudio,
   applyUserNarrationScript,
+  clearExternalNarration,
   assertHybridInputs,
   createUserVideoPlan,
   stageHybridAsset,
@@ -220,7 +221,10 @@ export async function runAutomation(
             );
           }
         }
-        branding = { ...branding, videoTitle: plan.title };
+        if (hybrid?.narrationSource === "USER_AUDIO") {
+          plan = clearExternalNarration(plan);
+        }
+                branding = { ...branding, videoTitle: plan.title };
         await save(path.join(directory, "metadata.json"), {
           ...content,
           ...plannerMetadata,
