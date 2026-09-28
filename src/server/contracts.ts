@@ -69,6 +69,11 @@ export interface Job {
   attempt: number;
   branding?: ResolvedBranding;
   brandingOverride?: BrandingOverride;
+  visualSource?: "AI" | "USER_VIDEO";
+  narrationSource?: "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+  visualAssetName?: string;
+  narrationAssetName?: string;
+  narrationScript?: string;
 }
 export interface JobEvent {
   id: number;
