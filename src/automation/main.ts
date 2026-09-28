@@ -7,7 +7,7 @@ import { loadQueue, markDone } from "./queue";
 import { parseContent } from "./load-content";
 import { loadSource, isRemoteReference, type SourceDocument } from "./source-loader";
 import { assertNarration } from "./narration";
-import { audioDuration } from "./media";
+import { audioDuration, probe } from "./media";
 import {
   alignExternalAudio,
   applyUserNarrationScript,
@@ -173,7 +173,7 @@ export async function runAutomation(
             hybrid.narrationSource === "AI_SCRIPT"
               ? await analyzeUserVideo(videoFile, config)
               : await (async () => {
-                  const video = await import("./media").then((m) => m.probe(videoFile));
+                  const video = await probe(videoFile);
                   const stream = video.streams.find((s) => s.codec_type === "video");
                   return {
                     durationSeconds: Number(video.format.duration),
