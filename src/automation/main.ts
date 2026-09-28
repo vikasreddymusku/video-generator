@@ -420,9 +420,12 @@ const normalizedTiming = {
             path.join(directory, "voiceover.txt"),
             "utf8",
           );
-          const voiceoverText = savedVoiceover.endsWith("\n")
-            ? savedVoiceover.slice(0, -1)
-            : savedVoiceover;
+          const voiceoverText =
+            narrationSource === "USER_SCRIPT"
+              ? savedVoiceover
+              : savedVoiceover.endsWith("\n")
+                ? savedVoiceover.slice(0, -1)
+                : savedVoiceover;
           if (voiceoverText !== plan.voiceover.text)
             throw new Error(
               "voiceover.txt changed after planning; refusing TTS.",
