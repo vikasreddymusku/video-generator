@@ -397,8 +397,8 @@ voiceover.mode is always "continuous".
           input.config.narration,
 
         narrationBudget: budget &&
-          !input.hybrid?.narrationSource &&
-          !input.hybrid?.visualSource
+          input.hybrid?.narrationSource !== "USER_SCRIPT" &&
+          input.hybrid?.narrationSource !== "USER_AUDIO"
           ? {
               mode: "fixed",
               availableSeconds:
