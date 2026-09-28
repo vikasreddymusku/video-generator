@@ -118,6 +118,8 @@ export const configSchema = z.object({
     maxAttempts: z.number().int().min(1).max(3).default(3),
     timeoutMs: positive.int().max(120000).default(60000),
     maxTokens: positive.int().default(6000),
+    // Used only when USER_VIDEO + AI_SCRIPT requires video-context analysis.
+    videoModel: text.default("google/gemini-3.1-flash-lite"),
   }),
   narration: z
   .object({
