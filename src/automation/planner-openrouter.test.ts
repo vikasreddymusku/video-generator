@@ -358,6 +358,10 @@ test("external narration planning never sends the user script and returns a visu
     });
     const result = await planner.createVideoPlan({
       ...f.input,
+      content: {
+        ...f.input.content,
+        suppliedVoiceover: "Secret supplied script",
+      },
       hybrid: {
         visualSource: "AI",
         narrationSource: "USER_SCRIPT",
