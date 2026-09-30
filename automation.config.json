@@ -61,7 +61,7 @@
     "structuredOutput": true,
     "maxAttempts": 3,
     "timeoutMs": 120000,
-    "maxTokens": 6000,
+    "maxTokens": 12000,
     "videoModel": "google/gemini-3.1-flash-lite"
   },
   "narration": {
