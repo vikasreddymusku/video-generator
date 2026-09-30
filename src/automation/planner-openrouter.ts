@@ -437,11 +437,7 @@ export class OpenRouterPlanner implements Planner {
                * GPT-5.6 Sol request when require_parameters
                * was enabled.
                */
-              max_tokens:
-                input.hybrid?.narrationSource === "USER_SCRIPT" ||
-                input.hybrid?.narrationSource === "USER_AUDIO"
-                  ? Math.min(settings.maxTokens, 4000)
-                  : settings.maxTokens,
+              max_tokens: settings.maxTokens,
 
               stream: false,
 
