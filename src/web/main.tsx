@@ -756,6 +756,9 @@ function Create({
     [files, setFiles] = useState<File[]>([]),
     [hybridVisualSource, setHybridVisualSource] = useState<"AI" | "USER_VIDEO">("AI"),
     [hybridNarrationSource, setHybridNarrationSource] = useState<"AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO">("AI_SCRIPT"),
+    [narrationViewpoint, setNarrationViewpoint] =
+  useState<"FIRST_PERSON" | "THIRD_PERSON">("THIRD_PERSON"),
+
     [hybridSourceFile, setHybridSourceFile] = useState<File>(),
     [hybridSourceUrl, setHybridSourceUrl] = useState(""),
     [hybridVideoFile, setHybridVideoFile] = useState<File>(),
@@ -853,6 +856,9 @@ function Create({
         form.append("options", JSON.stringify(options));
         form.append("visualSource", hybridVisualSource);
         form.append("narrationSource", hybridNarrationSource);
+        if (hybridNarrationSource === "AI_SCRIPT") {
+  form.append("narrationViewpoint", narrationViewpoint);
+}
         if (hybridScript) form.append("script", hybridScript);
         if (hybridSourceUrl.trim()) form.append("sourceUrl", hybridSourceUrl.trim());
         if (hybridSourceFile) form.append("source", hybridSourceFile);
@@ -1019,6 +1025,26 @@ function Create({
                       <option value="USER_AUDIO">My narration audio</option>
                     </select>
                   </label>
+                  {hybridNarrationSource === "AI_SCRIPT" && (
+  <label>
+    Narration viewpoint
+    <select
+      value={narrationViewpoint}
+      onChange={(e) =>
+        setNarrationViewpoint(
+          e.target.value as "FIRST_PERSON" | "THIRD_PERSON",
+        )
+      }
+    >
+      <option value="FIRST_PERSON">
+        First person — narrate as the presenter
+      </option>
+      <option value="THIRD_PERSON">
+        Third person — narrate about the presenter
+      </option>
+    </select>
+  </label>
+)}
                 </div>
                 {hybridVisualSource === "AI" && (
                   <div className="fields">

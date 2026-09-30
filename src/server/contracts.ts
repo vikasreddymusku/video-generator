@@ -72,6 +72,7 @@ export interface Job {
   brandingOverride?: BrandingOverride;
   visualSource?: "AI" | "USER_VIDEO";
   narrationSource?: "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+  narrationViewpoint?: "FIRST_PERSON" | "THIRD_PERSON";
   visualAssetName?: string;
   narrationAssetName?: string;
   narrationScript?: string;

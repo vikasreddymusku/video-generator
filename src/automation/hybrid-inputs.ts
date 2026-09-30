@@ -264,6 +264,7 @@ export function createUserVideoPlan(
         visualConcept: "User-provided video is the authoritative visual source.",
         animationDirection: "scale",
         voiceover: sceneVoiceover,
+        // eslint-disable-next-line @remotion/non-pure-animation
         transition: "fade",
         suggestedSfx: [],
         code: null,

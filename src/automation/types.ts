@@ -495,13 +495,14 @@ export type VideoProps = {
   branding?: ResolvedBranding;
   hybrid?: HybridInputs;
 };
-
 export type VisualSource = "AI" | "USER_VIDEO";
 export type NarrationSource = "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+export type NarrationViewpoint = "FIRST_PERSON" | "THIRD_PERSON";
 
 export type HybridInputs = {
   visualSource?: VisualSource;
   narrationSource?: NarrationSource;
+  narrationViewpoint?: NarrationViewpoint;
   userVideoFile?: string;
   userNarrationAudioFile?: string;
   userNarrationScript?: string;

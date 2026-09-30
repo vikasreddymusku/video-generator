@@ -113,6 +113,7 @@ export function createApp(
       brand: z.object({ name: z.string().trim().min(1).max(120), tagline: z.string().trim().min(1).max(240), cta: z.string().trim().min(1).max(120), website: z.string().trim().min(1).max(300), email: z.email(), phone: z.string().trim().min(1).max(80), address: z.string().trim().min(1).max(500) }).strict(),
       branding: brandingConfigSchema,
     }).strict().parse(value);
+
     const current = await brandingConfig();
     await save(configFile, configSchema.parse({ ...current, ...input }));
     return brandingView();
@@ -360,16 +361,36 @@ export function createApp(
     ]),
     async (req, res) => {
       const input = z
-        .object({
-          options: z.unknown(),
-          visualSource: z.enum(["AI", "USER_VIDEO"]),
-          narrationSource: z.enum(["AI_SCRIPT", "USER_SCRIPT", "USER_AUDIO"]),
-          script: z.string().max(512 * 1024).optional(),
-          sourceUrl: z.string().max(2048).optional(),
-        })
-        .strict()
-        .parse(req.body);
-      const baseOptions = options(input.options);
+  .object({
+    options: z.string(),
+    visualSource: z.enum(["AI", "USER_VIDEO"]),
+    narrationSource: z.enum(["AI_SCRIPT", "USER_SCRIPT", "USER_AUDIO"]),
+    narrationViewpoint: z
+  .enum(["FIRST_PERSON", "THIRD_PERSON"])
+  .optional(),
+    script: z.string().max(512 * 1024).optional(),
+    sourceUrl: z.string().max(2048).optional(),
+  })
+  .strict()
+  .parse(req.body);
+if (
+  input.narrationSource === "AI_SCRIPT" &&
+  !input.narrationViewpoint
+) {
+  throw new ClientError(
+    "Choose a narration viewpoint for AI-generated narration.",
+  );
+}
+
+if (
+  input.narrationSource !== "AI_SCRIPT" &&
+  input.narrationViewpoint
+) {
+  throw new ClientError(
+    "Narration viewpoint is only valid for AI-generated narration.",
+  );
+}
+const baseOptions = options(JSON.parse(input.options));
       const files = req.files as Record<string, Express.Multer.File[]>;
       const sourceFile = files?.source?.[0];
       const videoFile = files?.video?.[0];
@@ -458,13 +479,17 @@ export function createApp(
         const job = {
           ...withBranding(baseOptions, title),
           sourceType: normalized.sourceType,
-          sourceLocationType: input.sourceUrl ? "REMOTE" : "LOCAL",
+          sourceLocationType: input.sourceUrl ? ("REMOTE" as const) : ("LOCAL" as const),
           sourceReference,
           sourceOriginalName,
           sourceMimeType,
           title,
           visualSource: input.visualSource,
-          narrationSource: input.narrationSource,
+narrationSource: input.narrationSource,
+narrationViewpoint:
+  input.narrationSource === "AI_SCRIPT"
+    ? input.narrationViewpoint
+    : undefined,
           visualAssetName: videoName,
           narrationAssetName: audioName,
           narrationScript: input.narrationSource === "USER_SCRIPT" ? input.script : undefined,

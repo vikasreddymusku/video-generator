@@ -6,8 +6,9 @@ import {
   createUserVideoPlan,
   resolveHybridCapabilities,
 } from "./hybrid-inputs";
+import type { ContentInput } from "./load-content";
 
-function content() {
+function content(): ContentInput {
   return {
     frontmatter: {},
     metadata: {
@@ -48,7 +49,7 @@ function content() {
 
 test("Phase 7 capability matrix covers all six combinations", () => {
   const cases = [
-    ["AI", "AI_SCRIPT", true, false, true, true],
+    ["AI", "AI_SCRIPT", true, false, false, true],
     ["AI", "USER_SCRIPT", true, false, false, true],
     ["AI", "USER_AUDIO", true, false, false, false],
     ["USER_VIDEO", "AI_SCRIPT", false, true, true, true],

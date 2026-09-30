@@ -5,6 +5,12 @@ import QRCode from "qrcode";
 import type { AutomationConfig, BrandingOverride, ResolvedBranding, VideoPlan } from "./types";
 
 const frames = (seconds: number, fps: number) => Math.round(seconds * fps);
+const normalizePublicAsset = (asset?: string) => {
+  if (!asset) return undefined;
+  return asset
+    .replace(/^\/+/, "")
+    .replace(/^public\//i, "");
+};
 const globalBrandSceneDefaults = {
   supportingText: [],
   items: [],
@@ -34,8 +40,21 @@ export function resolveBranding(
   override: BrandingOverride = {},
 ): ResolvedBranding {
   const base = config.branding;
-  const intro = { ...base.intro, ...override.intro };
-  const outro = { ...base.outro, ...override.outro };
+  const intro = {
+  ...base.intro,
+  ...override.intro,
+  asset: normalizePublicAsset(
+    override.intro?.asset ?? base.intro.asset,
+  ),
+};
+
+const outro = {
+  ...base.outro,
+  ...override.outro,
+  asset: normalizePublicAsset(
+    override.outro?.asset ?? base.outro.asset,
+  ),
+};
   // A job override can select the shared uploaded slot. If no validated asset
   // exists, keep the job renderable with the configured dynamic treatment.
   if (intro.mode === "uploaded" && !intro.asset) intro.mode = "dynamic";
@@ -45,7 +64,12 @@ export function resolveBranding(
     throw new Error("Global branding requires complete brand identity in automation.config.json.");
   const introActive = intro.enabled && intro.mode !== "none";
   const outroActive = outro.enabled && outro.mode !== "none";
-  const qrEnabled = outroActive && outro.mode === "dynamic" && outro.showQrCode && Boolean(outro.qrDestination);
+  const qrEnabled =
+  outroActive &&
+  outro.mode === "dynamic" &&
+  outro.showQrCode === true &&
+  typeof outro.qrDestination === "string" &&
+  /^https:\/\//i.test(outro.qrDestination);
   return {
     brandName: identity.name,
     tagline: identity.tagline,

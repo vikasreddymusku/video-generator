@@ -1,5 +1,12 @@
 import type { ContentInput } from "./load-content";
-import type { AutomationConfig, ThemeConfig, VideoPlan, NarrationSource, VisualSource } from "./types";
+import type {
+  AutomationConfig,
+  ThemeConfig,
+  VideoPlan,
+  NarrationSource,
+  VisualSource,
+  NarrationViewpoint,
+} from "./types";
 import { videoPlanSchema } from "./types";
 import { readJson } from "./io";
 export type PlannerInput = {
@@ -9,9 +16,10 @@ export type PlannerInput = {
   theme: ThemeConfig;
   planFile: string;
   hybrid?: {
-    visualSource?: VisualSource;
-    narrationSource?: NarrationSource;
-  };
+  visualSource?: VisualSource;
+  narrationSource?: NarrationSource;
+  narrationViewpoint?: NarrationViewpoint;
+};
 };
 export interface Planner {
   createVideoPlan(input: PlannerInput): Promise<VideoPlan>;

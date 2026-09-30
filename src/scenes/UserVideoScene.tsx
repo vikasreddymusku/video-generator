@@ -8,14 +8,11 @@ export const UserVideoScene: FC<{
 }> = ({ asset, volume }) => (
   <Video
     src={staticFile(asset)}
-    style={{
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      backgroundColor: "black",
-    }}
+    objectFit="cover"
+  style={{
+    width: "100%",
+    height: "100%",
+  }}
     volume={volume}
   />
 );

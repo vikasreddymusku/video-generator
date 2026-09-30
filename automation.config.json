@@ -12,7 +12,7 @@
     "intro": {
       "enabled": true,
       "mode": "uploaded",
-      "asset": "branding/a12b4468-3f07-4511-8a13-1bbaa1c58b3c.mp4",
+      "asset": "branding/ddc2cc90-45c0-4abb-af75-bb6b207b89dc.mp4",
       "durationSeconds": 4,
       "logo": {
         "enabled": true,
@@ -32,8 +32,8 @@
       "holdDurationSeconds": 1
     },
     "outro": {
-      "enabled": true,
-      "mode": "dynamic",
+      "enabled": false,
+      "mode": "none",
       "durationSeconds": 5,
       "showVideoTitle": true,
       "showWebsite": true,
@@ -61,7 +61,8 @@
     "structuredOutput": true,
     "maxAttempts": 3,
     "timeoutMs": 120000,
-    "maxTokens": 6000
+    "maxTokens": 6000,
+    "videoModel": "google/gemini-3.1-flash-lite"
   },
   "narration": {
     "wordsPerMinute": 150,

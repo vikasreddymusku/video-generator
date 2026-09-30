@@ -19,7 +19,28 @@ const loadPlan = async () =>
 
 test("default global branding resolves dynamic variables and FPS-based timing", async () => {
   const config = await loadConfig();
-  const branding = resolveBranding(config, "AWS DATA ENGINEERING", 24);
+const branding = resolveBranding(
+  {
+    ...config,
+    branding: {
+      ...config.branding,
+      intro: {
+        ...config.branding.intro,
+        enabled: true,
+        mode: "dynamic",
+        asset: undefined,
+      },
+      outro: {
+        ...config.branding.outro,
+        enabled: true,
+        mode: "dynamic",
+        qrDestination: undefined,
+      },
+    },
+  },
+  "AWS DATA ENGINEERING",
+  24,
+);
 
   assert.equal(branding.intro.mode, "dynamic");
   assert.equal(branding.intro.durationSeconds, 4);
@@ -34,8 +55,29 @@ test("default global branding resolves dynamic variables and FPS-based timing", 
 
 test("branding adds only configured intro/outro duration to a dynamic plan", async () => {
   const config = await loadConfig();
-  const plan = await loadPlan();
-  const branding = resolveBranding(config, "Python for Data Engineering", plan.fps);
+const plan = await loadPlan();
+
+const branding = resolveBranding(
+  {
+    ...config,
+    branding: {
+      ...config.branding,
+      intro: {
+        ...config.branding.intro,
+        enabled: true,
+        mode: "dynamic",
+        asset: undefined,
+      },
+      outro: {
+        ...config.branding.outro,
+        enabled: true,
+        mode: "dynamic",
+      },
+    },
+  },
+  "Python for Data Engineering",
+  plan.fps,
+);
   const branded = applyBrandingTiming(plan, branding);
 
   assert.equal(branded.totalFrames, plan.totalFrames + 4 * plan.fps + 5 * plan.fps);
@@ -83,20 +125,22 @@ test("QR assets are generated only for an explicit HTTPS destination", async () 
     assert.equal((await prepareBrandingAssets(root, noDestination)).outro.qrAsset, undefined);
 
     const withDestination = resolveBranding(
-      {
-        ...config,
-        branding: {
-          ...config.branding,
-          outro: {
-            ...config.branding.outro,
-            showQrCode: true,
-            qrDestination: "https://example.com/enroll",
-          },
-        },
+  {
+    ...config,
+    branding: {
+      ...config.branding,
+      outro: {
+        ...config.branding.outro,
+        enabled: true,
+        mode: "dynamic",
+        showQrCode: true,
+        qrDestination: "https://example.com/enroll",
       },
-      "AWS Data Engineering",
-      30,
-    );
+    },
+  },
+  "AWS Data Engineering",
+  30,
+);
     const prepared = await prepareBrandingAssets(root, withDestination);
     assert.equal(prepared.outro.qrEnabled, true);
     assert.match(prepared.outro.qrAsset!, /^branding\/qr-[a-f0-9]{24}\.svg$/);
