@@ -24,7 +24,8 @@ export type SourceType =
   | "PDF"
   | "DOCX"
   | "PPTX"
-  | "WEBPAGE";
+  | "WEBPAGE"
+  | "VIDEO";
 export interface SourceSection {
   heading: string;
   text: string;
@@ -69,6 +70,12 @@ export interface Job {
   attempt: number;
   branding?: ResolvedBranding;
   brandingOverride?: BrandingOverride;
+  visualSource?: "AI" | "USER_VIDEO";
+  narrationSource?: "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+  narrationViewpoint?: "FIRST_PERSON" | "THIRD_PERSON";
+  visualAssetName?: string;
+  narrationAssetName?: string;
+  narrationScript?: string;
 }
 export interface JobEvent {
   id: number;

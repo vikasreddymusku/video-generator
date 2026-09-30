@@ -10,7 +10,8 @@ export async function prepareAssets(
   const assets: AudioAssets = { sfx: {} };
   if (voiceFile) {
     await audioDuration(voiceFile);
-    const relative = `generated/${slug}/voiceover.mp3`;
+    const extension = path.extname(voiceFile).toLowerCase() || ".mp3";
+    const relative = `generated/${slug}/voiceover${extension}`;
     await mkdir(path.join(root, "public", "generated", slug), {
       recursive: true,
     });

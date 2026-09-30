@@ -97,3 +97,21 @@ npm.cmd run build:ui
 ```
 
 The test suites use fixtures, mocked provider calls, and offline servers. They do not call OpenRouter or ElevenLabs.
+
+
+## Phase 7 hybrid inputs
+
+The Create Video page now has a **Hybrid Inputs** mode. The unified pipeline accepts:
+
+- AI visuals + AI narration
+- AI visuals + exact user narration script
+- AI visuals + user narration audio
+- user video + AI narration
+- user video + exact user narration script
+- user video + user narration audio
+
+User-provided video, narration script, and narration audio are authoritative. The pipeline only calls OpenRouter or ElevenLabs for components that are missing. User narration scripts are persisted and sent to ElevenLabs without rewriting; user narration audio bypasses TTS entirely.
+
+Hybrid uploads use the managed job directory and are validated before processing. User videos are staged into Remotion's public asset space without exposing server filesystem paths to the browser. Branding remains the global intro/outro system from Phase 6.
+
+For user-video + AI-narration jobs, the configured `planner.videoModel` is used only for video-context narration analysis. The normal planner remains responsible for source-backed visual planning when AI visuals are selected.

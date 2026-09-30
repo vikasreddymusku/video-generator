@@ -6,11 +6,11 @@ import {
 } from "./types";
 import { narrationBudget } from "./narration";
 
-export const PLANNER_PROMPT_VERSION = "3.1.0";
+export const PLANNER_PROMPT_VERSION = "3.2.0";
 
 export const productionPlanSchema =
   videoPlanSchema.safeExtend({
-    fullVoiceover: z.string().min(1),
+    fullVoiceover: z.string(),
   });
 
 export function plannerJsonSchema() {
@@ -264,6 +264,68 @@ words-per-minute, pause allowance, and ending buffer.
 
 Never accelerate speech merely to make it fit.
 
+SCENE-ALIGNED NARRATION
+
+Narration is generated for the visual scenes in this plan.
+
+Each scene's voiceover must describe the content currently shown in that scene.
+
+Do not describe a later scene before it appears.
+Do not describe an earlier scene after it has ended.
+Do not introduce unrelated information merely to fill time.
+
+The scene duration and its voiceover must be planned together.
+
+Allocate enough visual duration for the narration to be spoken naturally.
+Never rely on unnaturally fast speech to fit narration.
+
+Each scene should have a focused spoken message corresponding to its
+visual communication goal.
+
+The continuous voiceover must be the scene voiceovers joined in scene order.
+
+NARRATION VIEWPOINT
+
+If narrationViewpoint is FIRST_PERSON:
+
+Narrate as the presenter/instructor.
+
+Use natural first-person language where appropriate, such as:
+"I will..."
+"I'll..."
+"I explain..."
+"I use..."
+"Let's..."
+"We will..."
+"Let me show you..."
+
+Do not refer to the presenter as "the instructor", "the presenter",
+"he", or "she".
+
+If narrationViewpoint is THIRD_PERSON:
+
+Narrate about the presenter/instructor.
+
+Use natural third-person language where appropriate, such as:
+"The instructor explains..."
+"The presenter demonstrates..."
+"The instructor now shows..."
+
+Do not use first-person presenter language such as:
+"I will..."
+"I'll..."
+"I explain..."
+"I use..."
+"Let me show you..."
+
+The selected narration viewpoint applies to every AI-generated scene
+voiceover in the plan.
+
+Narration must fit naturally within the chosen duration using configured
+words-per-minute, pause allowance, and ending buffer.
+
+Never accelerate speech merely to make it fit.
+
 VISUAL QUALITY
 
 Use the selected theme consistently.
@@ -283,8 +345,10 @@ Use one dominant communication goal per scene.
 
 End with a readable CTA containing the exact configured contact data.
 
-fullVoiceover and voiceover.text must equal all scene voiceovers joined
-with one space in scene order.
+For externally supplied narration, narrationExternal must be true and
+voiceover.text/fullVoiceover may be empty; scene voiceovers may also be empty.
+For AI narration, narrationExternal must be false and fullVoiceover and
+voiceover.text must equal all scene voiceovers joined with one space in scene order.
 
 voiceover.mode is always "continuous".
 `.trim();
@@ -377,39 +441,62 @@ voiceover.mode is always "continuous".
         },
 
         narrationMode:
-          m.voiceover_mode,
+          input.hybrid?.narrationSource === "USER_SCRIPT" ||
+          input.hybrid?.narrationSource === "USER_AUDIO"
+            ? "external"
+            : m.voiceover_mode,
 
-        suppliedNarration:
-          input.content.suppliedVoiceover,
+
+        narrationViewpoint:
+  input.hybrid?.narrationSource === "AI_SCRIPT"
+    ? input.hybrid.narrationViewpoint ?? "THIRD_PERSON"
+    : undefined,
+
+        narrationExternal:
+          input.hybrid?.narrationSource === "USER_SCRIPT" ||
+          input.hybrid?.narrationSource === "USER_AUDIO",
+
+        ...(input.hybrid?.narrationSource !== "USER_SCRIPT" &&
+        input.hybrid?.narrationSource !== "USER_AUDIO"
+          ? { suppliedNarration: input.content.suppliedVoiceover }
+          : {}),
 
         narrationSettings:
           input.config.narration,
 
-        narrationBudget: budget
-          ? {
-              mode: "fixed",
-              availableSeconds:
-                budget.availableSeconds,
-              targetWords:
-                budget.targetWords,
-              wordsPerMinute:
-                input.config.narration
-                  .wordsPerMinute,
-            }
-          : {
-              mode: "auto",
-              wordsPerMinute:
-                input.config.narration
-                  .wordsPerMinute,
-              pauseSecondsPerMinute:
-                input.config.narration
-                  .pauseSecondsPerMinute,
-              endingBufferSeconds:
-                input.config.narration
-                  .endingBufferSeconds,
-              rule:
-                "Choose duration and narration together so narration fits naturally.",
-            },
+        narrationBudget:
+          input.hybrid?.narrationSource === "USER_SCRIPT" ||
+          input.hybrid?.narrationSource === "USER_AUDIO"
+            ? {
+                mode: "external",
+                rule:
+                  "Do not generate, rewrite, summarize, or include narration text. Visual planning only; external narration is authoritative and will be injected after planning.",
+              }
+            : budget
+              ? {
+                  mode: "fixed",
+                  availableSeconds:
+                    budget.availableSeconds,
+                  targetWords:
+                    budget.targetWords,
+                  wordsPerMinute:
+                    input.config.narration
+                      .wordsPerMinute,
+                }
+              : {
+                  mode: "auto",
+                  wordsPerMinute:
+                    input.config.narration
+                      .wordsPerMinute,
+                  pauseSecondsPerMinute:
+                    input.config.narration
+                      .pauseSecondsPerMinute,
+                  endingBufferSeconds:
+                    input.config.narration
+                      .endingBufferSeconds,
+                  rule:
+                    "Choose duration and narration together so narration fits naturally.",
+                },
 
         brandContact: {
           brand: m.brand,

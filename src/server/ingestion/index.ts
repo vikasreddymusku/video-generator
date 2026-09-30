@@ -13,7 +13,7 @@ export const extensions: Record<string, SourceType> = {
   ".docx": "DOCX",
   ".pptx": "PPTX",
 };
-const mimeTypes: Record<SourceType, string[]> = {
+const mimeTypes: Record<Exclude<SourceType, "VIDEO">, string[]> = {
   MARKDOWN: ["text/markdown", "text/plain", "text/x-markdown"],
   TEXT: ["text/plain"],
   PDF: ["application/pdf"],
@@ -149,8 +149,10 @@ export async function extractSource(
       throw new ClientError(
         "This PDF has no extractable text. Export a text-based PDF or run OCR before uploading.",
       );
-  } else {
+    } else if (type === "DOCX" || type === "PPTX") {
     ({ sections, assets } = await officeSections(bytes, type));
+  } else {
+    throw new ClientError("Video sources use the hybrid video input path.");
   }
   if (!content)
     content = sections.map((s) => `## ${s.heading}\n\n${s.text}`).join("\n\n");
@@ -196,11 +198,15 @@ export async function ingestRemote(reference: string, download = safeDownload) {
   const name = decodeURIComponent(
     new URL(result.url).pathname.split("/").pop() || "webpage",
   );
-  let type = detectType(name);
+    let type = detectType(name);
+
+  if (type === "VIDEO")
+    throw new ClientError("Video sources use the hybrid video input path.");
+
   if (type === "WEBPAGE")
     type =
-      (Object.keys(mimeTypes) as SourceType[]).find((t) =>
-        mimeTypes[t].includes(result.mime),
+      (Object.keys(mimeTypes) as Array<Exclude<SourceType, "VIDEO">>).find(
+        (t) => mimeTypes[t].includes(result.mime),
       ) ?? "WEBPAGE";
   if (!mimeTypes[type].includes(result.mime))
     throw new ClientError(

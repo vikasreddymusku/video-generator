@@ -7,6 +7,16 @@ import { loadQueue, markDone } from "./queue";
 import { parseContent } from "./load-content";
 import { loadSource, isRemoteReference, type SourceDocument } from "./source-loader";
 import { assertNarration } from "./narration";
+import { audioDuration, probe } from "./media";
+import {
+  alignExternalAudio,
+  applyUserNarrationScript,
+  clearExternalNarration,
+  assertHybridInputs,
+  createUserVideoPlan,
+  stageHybridAsset,
+} from "./hybrid-inputs";
+import { analyzeUserVideo } from "./video-analysis";
 import type { Planner } from "./planner";
 import { CodexTestPlanner } from "./planner";
 import { OpenRouterPlanner } from "./planner-openrouter";
@@ -20,7 +30,7 @@ import {
   resolveBranding,
   stripBrandingTiming,
 } from "./branding";
-import type { BrandingOverride, ResolvedBranding } from "./types";
+import type { BrandingOverride, ResolvedBranding, VideoPlan } from "./types";
 
 export async function runAutomation(
   args = process.argv.slice(2),
@@ -31,6 +41,9 @@ export async function runAutomation(
     generateVoiceover?: typeof generateVoiceover;
     renderVideo?: typeof renderVideo;
     validateVideo?: typeof validateVideo;
+    probe?: typeof probe;
+    audioDuration?: typeof audioDuration;
+    analyzeUserVideo?: typeof analyzeUserVideo;
     sourceDocument?: SourceDocument;
     jobOptions?: {
       slug: string;
@@ -38,6 +51,14 @@ export async function runAutomation(
       durationSeconds?: number;
       branding?: ResolvedBranding;
       brandingOverride?: BrandingOverride;
+      hybrid?: {
+        visualSource: "AI" | "USER_VIDEO";
+        narrationSource: "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+        userVideoFile?: string;
+        userNarrationAudioFile?: string;
+        userNarrationScript?: string;
+        userVideoMimeType?: string;
+      };
     };
     onAudio?: (duration: number) => Promise<void>;
     onStage?: (stage: "PLANNING" | "NARRATION_PREPARED" | "GENERATING_VOICE" | "ALIGNING_TIMING" | "RENDERING" | "VALIDATING" | "COMPLETED") => void;
@@ -118,6 +139,8 @@ export async function runAutomation(
         }),
         { config, themes, themeOverride: value("--theme") },
       );
+      const hybrid = dependencies.jobOptions?.hybrid;
+      if (hybrid) assertHybridInputs(hybrid);
       if (dependencies.jobOptions) {
         content.metadata.slug = dependencies.jobOptions.slug;
         content.metadata.duration_mode = dependencies.jobOptions.durationMode;
@@ -146,22 +169,102 @@ export async function runAutomation(
           dependencies.planner ??
           (codexMode ? new CodexTestPlanner() : new OpenRouterPlanner());
         dependencies.onStage?.("PLANNING");
-        let plan = await planner.createVideoPlan({
-          content,
-          config,
-          themeId,
-          theme,
-          planFile: path.join(directory, "video-plan.json"),
-        });
+        let plan: VideoPlan;
+        let plannerMetadata = planner.metadata;
+        if (hybrid?.visualSource === "USER_VIDEO") {
+          const videoFile = hybrid.userVideoFile!;
+          const analysis =
+            hybrid.narrationSource === "AI_SCRIPT"
+              ? await (dependencies.analyzeUserVideo ?? analyzeUserVideo)(videoFile, config)
+              : await (async () => {
+                  const video = await (dependencies.probe ?? probe)(videoFile);
+                  const stream = video.streams.find((s) => s.codec_type === "video");
+                  return {
+                    durationSeconds: Number(video.format.duration),
+                    width: stream?.width,
+                    height: stream?.height,
+                    hasAudio: video.streams.some((s) => s.codec_type === "audio"),
+                    narration: "",
+                  };
+                })();
+          if (hybrid.narrationSource === "AI_SCRIPT") {
+            await save(path.join(directory, "video-analysis.json"), analysis);
+          }
+          plan = createUserVideoPlan(
+            content,
+            analysis.durationSeconds,
+            analysis.narration,
+            hybrid.narrationSource !== "AI_SCRIPT",
+          );
+          if (hybrid.narrationSource === "USER_SCRIPT") {
+            plan = applyUserNarrationScript(
+              plan,
+              hybrid.userNarrationScript!,
+            );
+          }
+        } else {
+          plan = await planner.createVideoPlan({
+            content,
+            config,
+            themeId,
+            theme,
+            planFile: path.join(directory, "video-plan.json"),
+            hybrid,
+          });
+          plannerMetadata = planner.metadata;
+          if (
+            hybrid?.narrationSource === "USER_SCRIPT"
+          ) {
+            plan = applyUserNarrationScript(
+              plan,
+              hybrid.userNarrationScript!,
+            );
+          }
+        }
+        if (hybrid?.narrationSource === "USER_AUDIO") {
+          plan = clearExternalNarration(plan);
+        }
+        await save(path.join(directory, "video-plan.json"), plan);
         branding = { ...branding, videoTitle: plan.title };
         await save(path.join(directory, "metadata.json"), {
           ...content,
-          ...planner.metadata,
+          ...plannerMetadata,
         });
         await save(
           path.join(directory, "voiceover.txt"),
-          plan.voiceover.text + "\n",
+          hybrid?.narrationSource === "USER_SCRIPT"
+            ? plan.voiceover.text
+            : plan.voiceover.text
+              ? plan.voiceover.text + "\n"
+              : "",
         );
+        const runtimeHybrid = hybrid
+          ? {
+              visualSource: hybrid.visualSource,
+              narrationSource: hybrid.narrationSource,
+              ...(hybrid.userVideoFile
+                ? {
+                    userVideoAsset: await stageHybridAsset(
+                      root,
+                      plan.slug,
+                      hybrid.userVideoFile,
+                      "video",
+                    ),
+                  }
+                : {}),
+              ...(hybrid.narrationSource === "USER_AUDIO"
+                ? {
+                    userNarrationAudioAsset: await stageHybridAsset(
+                      root,
+                      plan.slug,
+                      hybrid.userNarrationAudioFile!,
+                      "narration",
+                    ),
+                  }
+                : {}),
+              userVideoVolume: 0.15,
+            }
+          : undefined;
         if (preview) {
           plan = applyBrandingTiming(plan, branding);
           await save(path.join(root, "src", "generated", "preview.json"), {
@@ -170,6 +273,7 @@ export async function runAutomation(
             audio: await prepareAssets(root, plan.slug),
             mix: config.audio,
             branding,
+            hybrid: runtimeHybrid,
           });
           await log("Visual preview prepared without TTS.");
           console.log(
@@ -177,7 +281,10 @@ export async function runAutomation(
           );
           continue;
         }
-        const voiceFile = path.join(directory, "audio", "voiceover.mp3");
+        let voiceFile =
+          hybrid?.narrationSource === "USER_AUDIO"
+            ? hybrid.userNarrationAudioFile!
+            : path.join(directory, "audio", "voiceover.mp3");
         if (validateOnly) {
           const timing = videoPlanSchema.parse(
             await readJson(path.join(directory, "render-plan.json")),
@@ -257,74 +364,129 @@ const normalizedTiming = {
           console.log("Validation passed (queue unchanged).");
           continue;
         }
-        const narration = assertNarration(
-          plan.voiceover.text,
-          plan.durationSeconds,
-          config,
-          content.metadata.voiceover_mode,
-        );
-        await save(path.join(directory, "narration-budget.json"), narration);
+        const narrationSource =
+          hybrid?.narrationSource ?? "AI_SCRIPT";
+        let narrationBudgetSummary:
+          | ReturnType<typeof assertNarration>
+          | undefined;
+        if (narrationSource === "USER_AUDIO") {
+          const duration = await (dependencies.audioDuration ?? audioDuration)(hybrid!.userNarrationAudioFile!);
+          await save(path.join(directory, "narration-budget.json"), {
+            source: "USER_AUDIO",
+            duration,
+          });
+        } else {
+          const narrationMode =
+            narrationSource === "USER_SCRIPT"
+              ? "supplied"
+              : content.metadata.voiceover_mode;
+          if (
+            content.metadata.duration_mode === "fixed" ||
+            narrationSource === "AI_SCRIPT"
+          ) {
+            narrationBudgetSummary = assertNarration(
+              plan.voiceover.text,
+              plan.durationSeconds,
+              config,
+              narrationMode,
+            );
+            await save(
+              path.join(directory, "narration-budget.json"),
+              narrationBudgetSummary,
+            );
+          }
+        }
         dependencies.onStage?.("NARRATION_PREPARED");
         if (planOnly) {
           console.log(
-            `Plan ready: ${plan.slug}; ${narration.wordCount} narration words; estimated ${narration.estimatedSeconds.toFixed(2)}s including pauses. No TTS or render requested.`,
+            narrationSource === "USER_AUDIO"
+              ? `Plan ready: ${plan.slug}; user narration audio accepted. No TTS or render requested.`
+              : `Plan ready: ${plan.slug}; ${narrationBudgetSummary?.wordCount ?? plan.voiceover.text.trim().split(/\\s+/).filter(Boolean).length} narration words. No TTS or render requested.`,
           );
           continue;
         }
-        if (!config.tts.enabled)
-          throw new Error(
-            "Narrated rendering requires tts.enabled=true; use --preview for silent visuals.",
+        let audio: {
+          file: string;
+          duration: number;
+          alignment: Awaited<ReturnType<typeof generateVoiceover>>["alignment"];
+          cached: boolean;
+        };
+        if (narrationSource === "USER_AUDIO") {
+          voiceFile = hybrid!.userNarrationAudioFile!;
+          audio = {
+            file: voiceFile,
+            duration: await (dependencies.audioDuration ?? audioDuration)(voiceFile),
+            alignment: null,
+            cached: true,
+          };
+        } else {
+          if (!config.tts.enabled)
+            throw new Error(
+              "Narrated rendering requires tts.enabled=true; use --preview for silent visuals.",
+            );
+          const savedVoiceover = await readFile(
+            path.join(directory, "voiceover.txt"),
+            "utf8",
           );
-        const voiceoverText = (
-          await readFile(path.join(directory, "voiceover.txt"), "utf8")
-        ).slice(0, -1);
-        if (voiceoverText !== plan.voiceover.text)
-          throw new Error(
-            "voiceover.txt changed after planning; refusing TTS.",
+          const voiceoverText =
+            narrationSource === "USER_SCRIPT"
+              ? savedVoiceover
+              : savedVoiceover.endsWith("\n")
+                ? savedVoiceover.slice(0, -1)
+                : savedVoiceover;
+          if (voiceoverText !== plan.voiceover.text)
+            throw new Error(
+              "voiceover.txt changed after planning; refusing TTS.",
+            );
+          dependencies.onStage?.("GENERATING_VOICE");
+          audio = await (
+            dependencies.generateVoiceover ?? generateVoiceover
+          )(
+            { ...plan, voiceover: { ...plan.voiceover, text: voiceoverText } },
+            config,
+            path.join(directory, "audio"),
+            !codexMode || args.includes("--allow-tts"),
           );
-        dependencies.onStage?.("GENERATING_VOICE");
-        const audio = await (
-          dependencies.generateVoiceover ?? generateVoiceover
-        )(
-          { ...plan, voiceover: { ...plan.voiceover, text: voiceoverText } },
-          config,
-          path.join(directory, "audio"),
-          !codexMode || args.includes("--allow-tts"),
-        );
+          voiceFile = audio.file;
+        }
         dependencies.onStage?.("ALIGNING_TIMING");
         await dependencies.onAudio?.(audio.duration);
         plan = videoPlanSchema.parse(
-  alignScenes(plan, audio, {
-    durationMode:
-      content.metadata.duration_mode,
-
-    endingBufferSeconds:
-      config.narration
-        .endingBufferSeconds,
-  }),
-);
+          narrationSource === "USER_AUDIO"
+            ? alignExternalAudio(
+                plan,
+                audio.duration,
+                content.metadata.duration_mode,
+                config.narration.endingBufferSeconds,
+              )
+            : alignScenes(plan, audio, {
+                durationMode: content.metadata.duration_mode,
+                endingBufferSeconds: config.narration.endingBufferSeconds,
+              }),
+        );
         plan = applyBrandingTiming(plan, branding);
         await save(path.join(directory, "render-plan.json"), plan);
         const props = {
           plan,
           theme,
-          audio: await prepareAssets(root, plan.slug, audio.file),
+          audio: await prepareAssets(root, plan.slug, voiceFile),
           mix: config.audio,
           branding,
+          hybrid: runtimeHybrid,
         };
         dependencies.onStage?.("RENDERING");
         const output = await (dependencies.renderVideo ?? renderVideo)(
           root,
           path.join(directory, "renders"),
           props,
-          audio.file,
+          voiceFile,
           config.validation.durationToleranceSeconds,
           force,
         );
         dependencies.onStage?.("VALIDATING");
         const result = await (dependencies.validateVideo ?? validateVideo)(
           output,
-          audio.file,
+          voiceFile,
           plan,
           config.validation.durationToleranceSeconds,
           true,

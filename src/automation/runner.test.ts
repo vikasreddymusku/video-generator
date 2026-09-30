@@ -7,7 +7,7 @@ import { runAutomation } from "./main";
 import { OpenRouterPlanner } from "./planner-openrouter";
 import { readJson, save } from "./io";
 import { loadSource } from "./source-loader";
-import { videoPlanSchema } from "./types";
+import { configSchema, videoPlanSchema } from "./types";
 
 async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), "video-runner-"));
@@ -140,8 +140,28 @@ test("invalid remote planner output stops the runner before TTS and preserves pe
 });
 test("remote runner sends only narration to TTS and marks done only after successful final validation", async () => {
   for (const valid of [false, true]) {
-    const f = await fixture();
-    const events: string[] = [];
+  const f = await fixture();
+ const testConfig = configSchema.parse(
+  await readJson("automation.config.json"),
+);
+await save(path.join(f.root, "automation.config.json"), {
+  ...testConfig,
+  branding: {
+    ...testConfig.branding,
+    intro: {
+      ...testConfig.branding.intro,
+      enabled: true,
+      mode: "dynamic",
+      asset: undefined,
+    },
+    outro: {
+      ...testConfig.branding.outro,
+      enabled: true,
+      mode: "dynamic",
+    },
+  },
+});
+  const events: string[] = [];
     try {
       // A local one-second PCM fixture makes asset probing real without speech generation.
       const samples = 8000;

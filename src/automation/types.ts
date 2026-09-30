@@ -118,6 +118,8 @@ export const configSchema = z.object({
     maxAttempts: z.number().int().min(1).max(3).default(3),
     timeoutMs: positive.int().max(120000).default(60000),
     maxTokens: positive.int().default(6000),
+    // Used only when USER_VIDEO + AI_SCRIPT requires video-context analysis.
+    videoModel: text.default("google/gemini-3.1-flash-lite"),
   }),
   narration: z
   .object({
@@ -312,9 +314,12 @@ export const videoPlanSchema = z
     height: positive.int(),
     totalFrames: positive.int(),
     theme: text,
-    voiceover: z.object({ mode: z.literal("continuous"), text }),
+    voiceover: z.object({ mode: z.literal("continuous"), text: z.string() }),
+    // True only when narration is supplied externally and therefore is not required
+    // to be generated or concatenated by the visual planner.
+    narrationExternal: z.boolean().default(false),
     // Optional only for compatibility with already-rendered Phase 1 plans.
-    fullVoiceover: text.optional(),
+    fullVoiceover: z.string().optional(),
     contact: z.object({
       cta: text,
       website: text,
@@ -333,6 +338,11 @@ export const videoPlanSchema = z
       ctx.addIssue({
         code: "custom",
         message: "fullVoiceover must equal voiceover.text",
+      });
+    if (!plan.narrationExternal && !plan.voiceover.text.trim())
+      ctx.addIssue({
+        code: "custom",
+        message: "AI-generated narration cannot be empty",
       });
     let end = 0;
     const ids = new Set<string>();
@@ -449,6 +459,7 @@ if (scene.diagram) {
           "Scene frames must equal durationSeconds * fps and totalFrames",
       });
     if (
+      !plan.narrationExternal &&
       plan.scenes
         .map((s) => s.voiceover)
         .filter(Boolean)
@@ -482,6 +493,24 @@ export type VideoProps = {
   audio: AudioAssets;
   mix: AutomationConfig["audio"];
   branding?: ResolvedBranding;
+  hybrid?: HybridInputs;
+};
+export type VisualSource = "AI" | "USER_VIDEO";
+export type NarrationSource = "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+export type NarrationViewpoint = "FIRST_PERSON" | "THIRD_PERSON";
+
+export type HybridInputs = {
+  visualSource?: VisualSource;
+  narrationSource?: NarrationSource;
+  narrationViewpoint?: NarrationViewpoint;
+  userVideoFile?: string;
+  userNarrationAudioFile?: string;
+  userNarrationScript?: string;
+  userVideoDurationSeconds?: number;
+  // Runtime-only public asset references; never absolute server paths.
+  userVideoAsset?: string;
+  userNarrationAudioAsset?: string;
+  userVideoVolume?: number;
 };
 
 export type ResolvedBranding = {

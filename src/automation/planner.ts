@@ -1,5 +1,12 @@
 import type { ContentInput } from "./load-content";
-import type { AutomationConfig, ThemeConfig, VideoPlan } from "./types";
+import type {
+  AutomationConfig,
+  ThemeConfig,
+  VideoPlan,
+  NarrationSource,
+  VisualSource,
+  NarrationViewpoint,
+} from "./types";
 import { videoPlanSchema } from "./types";
 import { readJson } from "./io";
 export type PlannerInput = {
@@ -8,6 +15,11 @@ export type PlannerInput = {
   themeId: string;
   theme: ThemeConfig;
   planFile: string;
+  hybrid?: {
+  visualSource?: VisualSource;
+  narrationSource?: NarrationSource;
+  narrationViewpoint?: NarrationViewpoint;
+};
 };
 export interface Planner {
   createVideoPlan(input: PlannerInput): Promise<VideoPlan>;
@@ -58,6 +70,17 @@ export function validatePlan(input: PlannerInput, value: unknown) {
     );
   }
 
+  const expectsExternalNarration =
+    input.hybrid?.narrationSource === "USER_SCRIPT" ||
+    input.hybrid?.narrationSource === "USER_AUDIO";
+  if (plan.narrationExternal !== expectsExternalNarration) {
+    throw new Error(
+      expectsExternalNarration
+        ? "Planner must return an external-narration visual plan."
+        : "Planner returned an unexpected external-narration plan.",
+    );
+  }
+
   if (
     plan.slug !== meta.slug ||
     plan.title !== meta.title ||
@@ -83,6 +106,7 @@ export function validatePlan(input: PlannerInput, value: unknown) {
   }
 
   if (
+    !plan.narrationExternal &&
     input.content.metadata.voiceover_mode === "supplied" &&
     plan.voiceover.text !== input.content.suppliedVoiceover
   ) {

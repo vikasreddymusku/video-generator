@@ -1,6 +1,8 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { runAutomation } from "../automation/main";
+import { resolveBranding } from "../automation/branding";
+import { loadMetadataContext } from "../automation/resolve-metadata";
 import { hash, readJson, save } from "../automation/io";
 import { videoPlanSchema } from "../automation/types";
 import type { Job, NormalizedSource } from "./contracts";
@@ -10,13 +12,27 @@ import { safeMessage } from "./security";
 
 export const jobDirectory = (root: string, id: string) =>
   path.join(root, "output", "jobs", `job-${id}`);
+
 export const sourceDirectory = (root: string, id: string) =>
   path.join(root, "inputs", "job-uploads", id);
+
+type EngineHybrid = {
+  visualSource: "AI" | "USER_VIDEO";
+  narrationSource: "AI_SCRIPT" | "USER_SCRIPT" | "USER_AUDIO";
+  narrationViewpoint?: "FIRST_PERSON" | "THIRD_PERSON";
+  userVideoFile?: string;
+  userNarrationAudioFile?: string;
+  userNarrationScript?: string;
+  userVideoMimeType?: string;
+};
+
 export type Engine = (
   job: Job,
   source: NormalizedSource,
   stage: (stage: string) => void,
+  hybrid?: EngineHybrid,
 ) => Promise<{ valid: boolean; title: string; duration: number }>;
+
 export function engineAdapter(
   root: string,
   dependencies: Parameters<typeof runAutomation>[2] = {},
@@ -24,7 +40,8 @@ export function engineAdapter(
   // The existing renderer shares an engine lock and generated assets. Serialize only
   // this section; independently bounded ingestion can use configured worker slots.
   let tail: Promise<unknown> = Promise.resolve();
-  return (job, source, stage) => {
+
+  return (job, source, stage, hybrid) => {
     const run = tail.then(async () => {
       const document = {
         type:
@@ -41,6 +58,7 @@ export function engineAdapter(
         sourceName: source.originalName,
         fetchedAt: source.provenance.extractedAt,
       };
+
       await runAutomation(
         [
           "--source",
@@ -60,41 +78,62 @@ export function engineAdapter(
             durationSeconds: job.durationSeconds,
             branding: job.branding,
             brandingOverride: job.brandingOverride,
+            hybrid,
           },
           onStage: stage,
           onAudio: (duration) =>
-            save(path.join(jobDirectory(root, job.id), "audio-duration.json"), {
-              duration,
-            }),
+            save(
+              path.join(
+                jobDirectory(root, job.id),
+                "audio-duration.json",
+              ),
+              {
+                duration,
+              },
+            ),
         },
       );
+
       const directory = jobDirectory(root, job.id);
+
       const validation = (await readJson(
         path.join(directory, "validation.json"),
       )) as { valid: boolean };
+
       const receipt = (await readJson(
         path.join(directory, "renders", "render-receipt.json"),
       )) as { succeeded: boolean; outputHash: string };
+
       if (
         !validation.valid ||
         !receipt.succeeded ||
         receipt.outputHash !==
           hash(await readFile(path.join(directory, "renders", "final.mp4")))
-      )
+      ) {
         throw new Error("Output did not pass receipt verification.");
+      }
+
       const plan = videoPlanSchema.parse(
         await readJson(path.join(directory, "render-plan.json")),
       );
-      return { valid: true, title: plan.title, duration: plan.durationSeconds };
+
+      return {
+        valid: true,
+        title: plan.title,
+        duration: plan.durationSeconds,
+      };
     });
+
     tail = run.catch(() => {});
     return run;
   };
 }
+
 export class JobWorker {
   paused = true;
   active = new Set<string>();
   private timer?: NodeJS.Timeout;
+
   constructor(
     readonly root: string,
     readonly repo: JobRepository,
@@ -102,48 +141,98 @@ export class JobWorker {
     readonly concurrency: () => number,
     readonly offline = false,
   ) {}
+
   start() {
     this.timer = setInterval(() => this.tick(), 1000);
     this.timer.unref();
   }
+
   stop() {
     this.paused = true;
     clearInterval(this.timer);
   }
+
   tick() {
     if (this.paused || this.offline) return;
+
     while (this.active.size < this.concurrency()) {
       const job = this.repo.claim();
       if (!job) return;
+
       this.active.add(job.id);
       void this.process(job).finally(() => this.active.delete(job.id));
     }
   }
+
   async process(job: Job) {
     try {
       const sourceFile = path.join(
         sourceDirectory(this.root, job.id),
         "normalized.json",
       );
+
       let source: NormalizedSource;
+
       try {
         source = (await readJson(sourceFile)) as NormalizedSource;
       } catch {
-        if (job.sourceLocationType !== "REMOTE")
+        if (job.sourceLocationType !== "REMOTE") {
           throw new Error(
             "Managed source snapshot is missing. Upload the source again.",
           );
+        }
+
         source = await ingestRemote(job.sourceReference);
         await save(sourceFile, source);
       }
+
       job.sourceType = source.sourceType;
-      job.title = source.title;
-      if (job.branding)
-        job.branding = { ...job.branding, videoTitle: source.title };
-      this.repo.save(job);
-      const result = await this.engine(job, source, (stage) =>
-        this.repo.stage(job.id, stage),
+job.title = source.title;
+
+const { config } = loadMetadataContext(this.root);
+job.branding = resolveBranding(
+  config,
+  source.title,
+  config.render.fps,
+  job.brandingOverride,
+);
+
+this.repo.save(job);
+
+      const managedAsset = (name?: string) => {
+        if (!name) return undefined;
+
+        if (
+          path.basename(name) !== name ||
+          !/^[A-Za-z0-9._-]+$/.test(name)
+        ) {
+          throw new Error("Managed hybrid asset reference is invalid.");
+        }
+
+        return path.join(sourceDirectory(this.root, job.id), name);
+      };
+
+      const hybrid: EngineHybrid | undefined =
+        job.visualSource || job.narrationSource
+          ? {
+              visualSource: job.visualSource ?? "AI",
+              narrationSource: job.narrationSource ?? "AI_SCRIPT",
+              narrationViewpoint: job.narrationViewpoint,
+              userVideoFile: managedAsset(job.visualAssetName),
+              userNarrationAudioFile: managedAsset(
+                job.narrationAssetName,
+              ),
+              userNarrationScript: job.narrationScript,
+            }
+          : undefined;
+
+      const result = await this.engine(
+        job,
+        source,
+        (stage) => this.repo.stage(job.id, stage),
+        hybrid,
       );
+
       this.repo.complete(job.id, result);
     } catch (e) {
       this.repo.fail(job.id, safeMessage(e));
