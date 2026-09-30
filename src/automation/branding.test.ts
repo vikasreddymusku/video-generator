@@ -120,9 +120,28 @@ test("QR assets are generated only for an explicit HTTPS destination", async () 
   const config = await loadConfig();
   const root = await mkdtemp(path.join(os.tmpdir(), "video-branding-"));
   try {
-    const noDestination = resolveBranding(config, "AWS Data Engineering", 30);
+    const noDestination = resolveBranding(
+      {
+        ...config,
+        branding: {
+          ...config.branding,
+          outro: {
+            ...config.branding.outro,
+            enabled: true,
+            mode: "dynamic",
+            showQrCode: true,
+            qrDestination: undefined,
+          },
+        },
+      },
+      "AWS Data Engineering",
+      30,
+    );
     assert.equal(noDestination.outro.qrEnabled, false);
-    assert.equal((await prepareBrandingAssets(root, noDestination)).outro.qrAsset, undefined);
+    assert.equal(
+      (await prepareBrandingAssets(root, noDestination)).outro.qrAsset,
+      undefined,
+    );
 
     const withDestination = resolveBranding(
   {
